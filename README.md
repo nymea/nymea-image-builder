@@ -1,7 +1,7 @@
 # guh-image-builder
 -----------------------------------------------------
 
-This script builds an Ubuntu 15.04 Vivid image for Raspberry Pi 2 with a preinstalled guh setup. 
+This script builds an Ubuntu 15.04 Vivid image for Raspberry Pi 2 with a pre installed guh setup. 
 
 Install needed packages:
   
@@ -24,7 +24,11 @@ Flash the image to the micro SD card (minimum size 2GB):
 
 Login:
 
-    $ ssh guh@guh.local    # password guh
+> **Note:** Please replace `192.168.0.X` with the ip of your Raspberry Pi 2.
+
+
+    $ ssh guh@192.168.0.X    # password: ubuntu
+
 
 # Reference
 -----------------------------------------------------
