@@ -102,7 +102,7 @@ chroot $R apt-add-repository -y ppa:fo0bar/rpi2
 chroot $R apt-get update
 
 # Standard packages
-chroot $R apt-get -y install ubuntu-standard initramfs-tools raspberrypi-bootloader-nokernel rpi2-ubuntu-errata language-pack-en openssh-server linux-firmware libraspberrypi-bin libraspberrypi-dev
+chroot $R apt-get -y install ubuntu-standard initramfs-tools raspberrypi-bootloader-nokernel rpi2-ubuntu-errata language-pack-en openssh-server avahi-utils linux-firmware libraspberrypi-bin libraspberrypi-dev
 
 # Install guh packages
 chroot $R apt-get -y install guh guh-cli guh-webinterface
@@ -144,6 +144,9 @@ chroot $R usermod -a -G sudo,adm -p '$6$iTPEdlv4$HSmYhiw2FmvQfueq32X30NqsYKpGDoT
 
 # Clean cached downloads
 chroot $R apt-get clean
+
+# enable the guhd service
+chroot $R systemctl enable guhd
 
 # Set up interfaces
 cat <<EOM >$R/etc/network/interfaces
@@ -274,7 +277,7 @@ if which bmaptool; then
   bmaptool create -o "${IMAGE_NAME}.bmap" "${IMAGE_NAME}.img"
 fi
 
-zip -r ${IMAGE_NAME}.zip ${IMAGE_NAME}.img ${IMAGE_NAME}.bmap
+zip ${IMAGE_NAME} ${IMAGE_NAME}.bmap ${IMAGE_NAME}.img
 
 # calculate process time
 endTime=$(date +%s)

@@ -8,7 +8,8 @@ Install needed packages:
     $ sudo apt-get update
     $ sudo apt-get upgrade
 
-    $ sudp apt-get install bmap-tools debootstrap qemu-utils
+    $ sudp apt-get install zip bmap-tools debootstrap qemu-utils
+
 
 Build the image:
 
@@ -24,11 +25,25 @@ Flash the image to the micro SD card (minimum size 2GB):
 
 Login:
 
+You can try to connect to the Raspberry Pi 2 using the hostname of the device (`guh`):
+
+    $ ssh guh@guh.local    # password: ubuntu
+
+
+Depending on the network setup `avahi` sometimes does not work. In that case you can connect to the device using the ip address:
+
 > **Note:** Please replace `192.168.0.X` with the ip of your Raspberry Pi 2.
 
 
     $ ssh guh@192.168.0.X    # password: ubuntu
 
+
+Once the system is running on your Raspberry Pi 2 guh should already running. You can connect to the guh-webinterface using following link:
+
+> **Note:** If this link is not working, plase replace `guh.local` with the ip address of your Raspberry Pi 2.
+
+    http://guh.local:3333
+ 
 
 # Reference
 -----------------------------------------------------
