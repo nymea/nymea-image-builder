@@ -223,6 +223,11 @@ source-directory /etc/network/interfaces.d
 auto lo
 iface lo inet loopback
 
+# Info: if you put your microSD card into a different Raspberry Pi
+#       please delete the rule in /etc/udev/rules.d/70-persistent-net.rules
+#       and reboot, otherwise the ethernet interface will appear as eth1,
+#       and can not be configured.
+
 # The primary network interface
 allow-hotplug eth0
 iface eth0 inet dhcp
@@ -300,8 +305,8 @@ EOM
 
 # Unmount mounted filesystems
 printGreen "Umount proc and sys..."
-umount -l $R/proc
 umount -l $R/sys
+umount -l $R/proc
 
 #########################################################
 # Clean up files
