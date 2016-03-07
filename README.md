@@ -1,7 +1,7 @@
 # guh-image-builder
 -----------------------------------------------------
 
-This script builds an Ubuntu 15.04 Vivid image for Raspberry Pi 2 with a pre installed guh setup. 
+This script builds an Ubuntu 16.04 LTS Xenial Xerus image for Raspberry Pi 2 with a pre installed guh setup. 
 
 ### Install needed packages:
   
@@ -13,7 +13,7 @@ This script builds an Ubuntu 15.04 Vivid image for Raspberry Pi 2 with a pre ins
 
 ### Build the image:
 
-    $ sudo ./build-rpi2-ubuntu-image.sh
+    $ sudo ./build-image.sh
 
 -----------------------------------------------------
 
@@ -31,14 +31,14 @@ Once the process is finished you can insert the micro SD card into the Raspberry
 ### Login 
 You can try to connect to the Raspberry Pi 2 using the hostname of the device (`guh`):
 
-    $ ssh guh@guh.local    # password: ubuntu
+    $ ssh guh@guh.local    # password: guh
 
 
 Depending on the network setup `avahi` sometimes does not work. In that case you can connect to the device using the ip address:
 
 > **Note:** Please replace `192.168.0.X` with the ip of your Raspberry Pi 2.
 
-    $ ssh guh@192.168.0.X    # password: ubuntu
+    $ ssh guh@192.168.0.X    # password: guh
 
 
 -----------------------------------------------------
@@ -58,6 +58,9 @@ The script is based on the image build script from Ryan Finnie and can be found 
 
 https://wiki.ubuntu.com/ARM/RaspberryPi
 
+And the Ubuntu Pi Flavour Maker team:
+
+https://code.launchpad.net/ubuntu-pi-flavour-maker
 
 # License
 ----------------------------------------------------
