@@ -35,12 +35,11 @@ TZDATA="Europe/Vienna"
 
 #########################################################
 # Directorys
-FLAVOUR="ubuntu-minimal"
-FLAVOUR_NAME="Ubuntu 16.04"
+TITLE="ubuntu"
 VERSION="16.04"
 
 BASEDIR=$(pwd)/image-build
-BUILDDIR=${BASEDIR}/${FLAVOUR}
+BUILDDIR=${BASEDIR}/${TITLE}
 MOUNTDIR=$BUILDDIR/mount
 BASE_R=${BASEDIR}/base
 DEVICE_R=${BUILDDIR}/pi2
@@ -60,7 +59,7 @@ FS_SIZE=4
 # Either 0 or 1.
 # - 0 don't make generic rootfs tarball
 # - 1 make a generic rootfs tarball
-MAKE_TARBALL=1
+MAKE_TARBALL=0
 
 ########################################################
 # bash colors
@@ -224,7 +223,7 @@ function create_user() {
     local DATE=$(date +%m%H%M%S)
     local PASSWD=$(mkpasswd -m sha-512 ${USERNAME} ${DATE})
 
-    chroot $R adduser --gecos "${FLAVOUR_NAME}" --add_extra_groups --disabled-password ${USERNAME}
+    chroot $R adduser --gecos "guh user" --add_extra_groups --disabled-password ${USERNAME}
     chroot $R usermod -a -G sudo -p ${PASSWD} ${USERNAME}
 }
 
@@ -592,8 +591,9 @@ stage_01_base
 stage_02_desktop
 stage_03_raspi2
 
-printGreen "Compress files ${IMAGE_NAME}.zip ..."
-zip ${IMAGE_NAME} ${IMAGE}
+printGreen "Compress files ${IMAGE} ..."
+cd ${BASEDIR}/
+zip ${IMAGE_NAME}.zip ${IMAGE}
 
 #########################################################
 # calculate process time
