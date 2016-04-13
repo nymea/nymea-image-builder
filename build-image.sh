@@ -296,7 +296,7 @@ function configure_hardware() {
     # https://launchpad.net/~fo0bar/+archive/ubuntu/rpi2-nightly/+files/xserver-xorg-video-fbturbo_0%7Egit.20151007.f9a6ed7-0%7Enightly.dsc
 
     # Kernel and Firmware - Pending
-    # https://twolife.be/raspbian/pool/main/bcm-videocore-pkgconfig/bcm-videocore-pkgconfig_1.dsc    
+    # https://twolife.be/raspbian/pool/main/bcm-videocore-pkgconfig/bcm-videocore-pkgconfig_1.dsc
     # https://twolife.be/raspbian/pool/main/linux/linux_4.1.8-1+rpi1.dsc
     # http://archive.raspberrypi.org/debian/pool/main/r/raspi-copies-and-fills/raspi-copies-and-fills_0.5-1.dsc # FTBFS in a PPA
 
@@ -396,8 +396,8 @@ deb-src http://repo.guh.guru ${RELEASE} main
 EOM
 
     # Add the guh repository key
-    chroot $R apt-key adv --keyserver keyserver.ubuntu.com --recv-key 6B9376B0
-    
+    chroot $R apt-key adv --keyserver keyserver.ubuntu.com --recv-key A1A19ED6
+
     printGreen "Update..."
     chroot $R apt-get update
 
