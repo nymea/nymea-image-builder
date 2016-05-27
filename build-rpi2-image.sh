@@ -38,7 +38,7 @@ TZDATA="Europe/Vienna"
 TITLE="ubuntu"
 VERSION="16.04"
 
-BASEDIR=$(pwd)/image-build
+BASEDIR=$(pwd)/image-rpi2-build
 BUILDDIR=${BASEDIR}/${TITLE}
 MOUNTDIR=$BUILDDIR/mount
 BASE_R=${BASEDIR}/base
@@ -319,7 +319,7 @@ function configure_hardware() {
     printGreen "Install kernel and firmware..."
     chroot $R apt-get -y install libraspberrypi-bin libraspberrypi-dev \
     libraspberrypi-doc libraspberrypi0 raspberrypi-bootloader rpi-update
-    chroot $R apt-get -y install linux-firmware linux-firmware-nonfree
+    chroot $R apt-get -y install linux-firmware
     chroot $R rpi-update
 
     # Add VideoCore libs to ld.so
