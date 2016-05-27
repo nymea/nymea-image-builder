@@ -13,7 +13,7 @@ This script builds an Ubuntu 16.04 LTS Xenial Xerus image for Raspberry Pi 2 wit
 
 ### Build the image:
 
-    $ sudo ./build-image.sh
+    $ sudo ./build-rpi2-image.sh
 
 -----------------------------------------------------
 
