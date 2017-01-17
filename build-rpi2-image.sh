@@ -391,8 +391,8 @@ function install_software() {
 
     cat <<EOM >$R/etc/apt/sources.list.d/guh.list
 ## guh repo
-deb http://repo.guh.guru ${RELEASE} main
-deb-src http://repo.guh.guru ${RELEASE} main
+deb http://repository.guh.io ${RELEASE} main
+deb-src http://repository.guh.io ${RELEASE} main
 EOM
 
     # Add the guh repository key
@@ -405,7 +405,7 @@ EOM
     chroot $R apt-get -y install htop nano avahi-utils
 
     printGreen "Install guh packages..."
-    chroot $R apt-get -y install guh guh-cli guh-webinterface
+    chroot $R apt-get -y install guh guh-cli guh-webinterface libguh1-dev guh-plugins-maker
 
     printGreen "Enable guhd autostart..."
     chroot $R systemctl enable guhd

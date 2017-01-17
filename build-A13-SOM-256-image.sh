@@ -1,5 +1,26 @@
 #!/bin/bash
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                         #
+#  Copyright (C) 2015-2017 Simon Stuerz <simon.stuerz@guh.io>             #
+#                                                                         #
+#  This file is part of guh.                                              #
+#                                                                         #
+#  guh is free software: you can redistribute it and/or modify            #
+#  it under the terms of the GNU General Public License as published by   #
+#  the Free Software Foundation, version 2 of the License.                #
+#                                                                         #
+#  guh is distributed in the hope that it will be useful,                 #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of         #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the           #
+#  GNU General Public License for more details.                           #
+#                                                                         #
+#  You should have received a copy of the GNU General Public License      #
+#  along with guh. If not, see <http://www.gnu.org/licenses/>.            #
+#                                                                         #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+
 ########################################################
 # Configs
 RELEASE="xenial"
@@ -26,7 +47,6 @@ IMAGE="${IMAGE_NAME}.img"
 
 # Either 4, 8 or 16
 FS_SIZE=4
-FS_TYPE="ext3"
 
 ########################################################
 # bash colors
@@ -109,16 +129,8 @@ buildKernel() {
 
     cd linux-sunxi
 
-    #printGreen "Patch kernel..."
-    #cp -v ${CURRENTDIR}/lib/a13_micro_SOM.patch .
-    #patch -p1 < a13_micro_SOM.patch
-
-    #cp -v ${CURRENTDIR}/lib/a13_micro_SOM_defconfig ./arch/arm/configs/
-
     printGreen "Configure kernel..."
     make ARCH=arm a13_micro_SOM_defconfig
-
-    #sudo sed -i -e 's/# CONFIG_FHANDLE is not set/CONFIG_FHANDLE=y/g' .config
 
     #make ARCH=arm menuconfig
 
@@ -246,8 +258,8 @@ function installSoftware() {
     printGreen "Add guh repository..."
     cat <<EOM >$R/etc/apt/sources.list.d/guh.list
 ## guh repo
-deb http://repo.guh.guru ${RELEASE} main
-deb-src http://repo.guh.guru ${RELEASE} main
+deb http://repository.guh.io ${RELEASE} main
+deb-src http://repository.guh.io ${RELEASE} main
 EOM
 
     # Add the guh repository key
@@ -262,23 +274,17 @@ EOM
     printGreen "Install guh packages..."
     chroot $R apt-get -y install guh guh-cli guh-webinterface
 
-    #printGreen "Enable guhd autostart..."
-    #chroot $R systemctl enable guhd
+    printGreen "Enable guhd autostart..."
+    chroot $R systemctl enable guhd
 }
 
 function createImage() {
 printGreen "Create image..."
     # Build the image file
-    local FS="${1}"
     local GB=${2}
 
-    if [ "${FS}" != "ext3" ]; then
-        echo "ERROR! Unsupport filesystem requested. Exitting."
-        exit 1
-    fi
-
     if [ ${GB} -ne 4 ] && [ ${GB} -ne 8 ] && [ ${GB} -ne 16 ]; then
-        echo "ERROR! Unsupport card image size requested. Exitting."
+        printRed "ERROR! Unsupport card image size requested. Exitting."
         exit 1
     fi
 
@@ -295,7 +301,6 @@ printGreen "Create image..."
         SIZE=31457278
         SIZE_LIMIT=15230
     fi
-
 
     dd if=/dev/zero of="${BASEDIR}/${IMAGE}" bs=1M count=1
     dd if=/dev/zero of="${BASEDIR}/${IMAGE}" bs=1M count=0 seek=${SEEK}
@@ -318,17 +323,16 @@ EOM
     mount "${ROOT_LOOP}" "${MOUNTDIR}"
     mkdir -p "${MOUNTDIR}/boot"
 
-    mkdir -p "${MOUNTDIR}"
+    mkdir -p "${MOUNTDIR}/rootfs"
     mount "${BOOT_LOOP}" "${MOUNTDIR}/boot"
 
     rsync -a --progress "$R/" "${MOUNTDIR}/"
 
     umount -l "${MOUNTDIR}/boot"
-    umount -l "${MOUNTDIR}"
+    umount -l "${MOUNTDIR}/rootfs"
 
     losetup -d "${BOOT_LOOP}"
     losetup -d "${ROOT_LOOP}"
-
 }
 
 
@@ -387,6 +391,8 @@ function buildImage() {
     printGreen "=================================================================================="
     printGreen "Create image"
     printGreen "=================================================================================="
+
+    
 
 }
 
