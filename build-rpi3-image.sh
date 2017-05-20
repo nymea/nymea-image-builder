@@ -47,7 +47,7 @@ DESKTOP_R=${BUILDDIR}/desktop
 ARCH=$(uname -m)
 export TZ=${TZDATA}
 
-TARBALL="$(date +%Y-%m-%d)-guh-ubuntu-${VERSION}-armhf-rootfs.tar.bz2"
+TARBALL="$(date +%Y-%m-%d)-guh-ubuntu-${VERSION}-armhf--pi-3-rootfs.tar.bz2"
 IMAGE="$(date +%Y-%m-%d)-guh-ubuntu-${VERSION}-armhf-raspberry-pi-3.img"
 IMAGE_NAME="$(date +%Y-%m-%d)-guh-ubuntu-${VERSION}-armhf-raspberry-pi-3"
 # Either 'ext4' or 'f2fs'
@@ -298,18 +298,22 @@ function configure_hardware() {
     chroot $R apt-get -y install gdebi-core
     local COFI="http://archive.raspberrypi.org/debian/pool/main/r/raspi-copies-and-fills/raspi-copies-and-fills_0.5-1_armhf.deb"
 
-    printGreen "Install kernel and firmware..."
+    printGreen "Install ubuntu-pi-flavour-makers PPA"
     # Install the RPi PPA
     chroot $R apt-add-repository -y ppa:ubuntu-pi-flavour-makers/ppa
     chroot $R apt-get update
 
+    printGreen "Install kernel and firmware..."
     # Firmware Kernel installation
     chroot $R apt-get -y install libraspberrypi-bin libraspberrypi-dev libraspberrypi-doc libraspberrypi0 raspberrypi-bootloader rpi-update
     chroot $R apt-get -y install bluez-firmware linux-firmware pi-bluetooth
 
-    # Raspberry Pi 3 WiFi firmware. Package this?
+    # Raspberry Pi 3 WiFi firmware. Package this
+    printGreen "Install kernel and firmware..."
     cp -v firmware/* $R/lib/firmware/brcm/
     chown root:root $R/lib/firmware/brcm/*
+
+    cp -v lib/motd $R/etc/
 
     # Hardware - Create a fake HW clock and add rng-tools
     chroot $R apt-get -y install fake-hwclock fbset i2c-tools rng-tools raspi-gpio
@@ -343,10 +347,6 @@ EOM
 }
 
 function install_software() {
-    printGreen "Add ubuntu pi flavour PPA"
-    # Install the RPi PPA
-    chroot $R apt-add-repository -y ppa:ubuntu-pi-flavour-makers/ppa
-
     printGreen "Add guh repository..."
 
     cat <<EOM >$R/etc/apt/sources.list.d/guh.list
@@ -362,13 +362,14 @@ EOM
     chroot $R apt-get update
 
     printGreen "Install extra packages..."
-    chroot $R apt-get -y install htop nano avahi-utils network-manager
+    chroot $R apt-get -y install htop nano avahi-utils snapd network-manager
 
     printGreen "Install guh packages..."
     chroot $R apt-get -y install guh guh-cli guh-webinterface libguh1-dev guh-plugins-maker
 
     printGreen "Enable guhd autostart..."
     chroot $R systemctl enable guhd
+    chroot $R systemctl enable network-manager
 }
 
 function clean_up() {
@@ -400,8 +401,6 @@ function clean_up() {
     rm -f $R/boot/.firmware_revision || true
     rm -rf $R/boot.bak || true
     rm -rf $R/lib/modules.bak || true
-    # Old kernel modules
-    #rm -rf $R/lib/modules/4.1.19* || true
 
     # Potentially sensitive.
     rm -f $R/root/.bash_history
@@ -428,7 +427,7 @@ function clean_up() {
     rm -rf $R/tmp/.standard || true
 }
 
-function make_raspi2_image() {
+function make_raspi3_image() {
     printGreen "Create image..."
     # Build the image file
     local FS="${1}"
@@ -521,7 +520,7 @@ function stage_01_base() {
 
 function stage_02_desktop() {
     printGreen "================================================"
-    printGreen "Stage 2 - Desktop"
+    printGreen "Stage 2 - Configuration"
     printGreen "================================================"
 
     R="${DESKTOP_R}"
@@ -539,7 +538,7 @@ function stage_02_desktop() {
     make_tarball
 }
 
-function stage_03_raspi2() {
+function stage_03_raspi3() {
     printGreen "================================================"
     printGreen "Stage 3 - Create image"
     printGreen "================================================"
@@ -552,7 +551,7 @@ function stage_03_raspi2() {
     apt_clean
     clean_up
     umount_system
-    make_raspi2_image ${FS_TYPE} ${FS_SIZE}
+    make_raspi3_image ${FS_TYPE} ${FS_SIZE}
 }
 
 #########################################################
@@ -564,7 +563,7 @@ startTime=$(date +%s)
 # Main
 stage_01_base
 stage_02_desktop
-stage_03_raspi2
+stage_03_raspi3
 
 printGreen "Compress files ${IMAGE} ..."
 cd ${BASEDIR}/

@@ -328,6 +328,8 @@ function configure_hardware() {
     # Hardware - Create a fake HW clock and add rng-tools
     chroot $R apt-get -y install fake-hwclock fbset i2c-tools rng-tools
 
+    cp -v lib/motd $R/etc/
+
     # Load sound module on boot and enable HW random number generator
     cat <<EOM >$R/etc/modules-load.d/rpi2.conf
 snd_bcm2835
