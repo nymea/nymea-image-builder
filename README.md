@@ -1,7 +1,17 @@
 # guh-image-builder
 -----------------------------------------------------
 
-This script builds an Ubuntu 16.04 LTS Xenial Xerus image for Raspberry Pi 2 with a pre installed guh setup. 
+## Prebuilt images
+
+Prebuilt images can be found here: https://downloads.guh.io/images/
+
+This script tools allow to build an Ubuntu 16.04 LTS Xenial Xerus image for different platforms containing a cmplete guh setup. 
+
+-----------------------------------------------------
+
+## Building images
+
+Assuming you are on an Ubuntu 16.04.
 
 ### Install needed packages:
   
@@ -13,23 +23,25 @@ This script builds an Ubuntu 16.04 LTS Xenial Xerus image for Raspberry Pi 2 wit
 
 ### Build the image:
 
-    $ sudo ./build-rpi2-image.sh
+Here an example how to build an image (in this case Raspberry Pi 3):
+
+    $ sudo ./build-rpi3-image.sh
 
 -----------------------------------------------------
 
-### Flash the image to the micro SD card (minimum size 2GB):
+### Flash the image to the micro SD card (minimum size 4GB):
 
 > **Note:** Please replace `sdX` with the device of your SD card. You can use `lsblk` to check which device is your SD card. 
 
 
     $ sudo bmaptool copy --bmap ubuntu-image.bmap ubuntu-image.img /dev/sdX
 
-Once the process is finished you can insert the micro SD card into the Raspberry Pi 2, connect the ethernet cable and power it on.
+Once the process is finished you can insert the micro SD card into your device, connect the ethernet cable and power it on.
 
 -----------------------------------------------------
 
 ### Login 
-You can try to connect to the Raspberry Pi 2 using the hostname of the device (`guh`):
+You can try to connect to the your device using the hostname of the device (`guh`):
 
     $ ssh guh@guh.local    # password: guh
 
@@ -45,9 +57,9 @@ Depending on the network setup `avahi` sometimes does not work. In that case you
 
 ### guh-webinterface
 
-Once the system is running on your Raspberry Pi 2 `guhd` should already running. You can connect to the guh-webinterface using following link:
+Once the system is started on your device `guhd` should already running. You can connect to the guh-webinterface using following link:
 
-> **Note:** If this link is not working, plase replace `guh.local` with the ip address of your Raspberry Pi 2.
+> **Note:** If this link is not working, plase replace `guh.local` with the ip address of your device.
 
     http://guh.local:3333
  
