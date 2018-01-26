@@ -1,24 +1,24 @@
-# guh-image-builder
+# nymea-image-builder
 -----------------------------------------------------
 
 ## Prebuilt images
 
-Prebuilt images can be found here: https://downloads.guh.io/images/
+Prebuilt images can be found here: https://downloads.nymea.io/images/
 
-This script tools allow to build an Ubuntu 16.04 LTS Xenial Xerus image for different platforms containing a cmplete guh setup. 
+This script tools allow to build an Ubuntu 16.04 LTS Xenial Xerus image for different platforms containing a complete nymea setup. 
 
 -----------------------------------------------------
 
 ## Building images
 
-Assuming you are on an Ubuntu 16.04.
+Assuming you are on an Ubuntu 16.04 (amd64).
 
 ### Install needed packages:
   
     $ sudo apt-get update
     $ sudo apt-get upgrade
 
-    $ sudp apt-get install zip bmap-tools debootstrap qemu-utils
+    $ sudo apt-get install zip debootstrap qemu-utils xz-utils
 
 
 ### Build the image:
@@ -27,41 +27,47 @@ Here an example how to build an image (in this case Raspberry Pi 3):
 
     $ sudo ./build-rpi3-image.sh
 
+Once finished you should find two compressed image files in the script directory (one for `zip`, one fox `xzcat`):
+
+- `$(date +%Y-%m-%d)-guh-ubuntu-16.04-armhf-raspberry-pi-3.zip`
+- `$(date +%Y-%m-%d)-guh-ubuntu-16.04-armhf-raspberry-pi-3.img.xz`
+
+
 -----------------------------------------------------
 
 ### Flash the image to the micro SD card (minimum size 4GB):
 
+#### Using xzcat
+
 > **Note:** Please replace `sdX` with the device of your SD card. You can use `lsblk` to check which device is your SD card. 
 
+    $ xzcat image-file.img.xz | sudo dd of=/dev/sdX
 
-    $ sudo bmaptool copy --bmap ubuntu-image.bmap ubuntu-image.img /dev/sdX
+
+#### Using zip file
+
+> **Note:** Please replace `sdX` with the device of your SD card. You can use `lsblk` to check which device is your SD card. 
+
+    $ unzip image-file.zip
+    $ sudo dd if=image-file.img of=/dev/sdX bs=4M
+
 
 Once the process is finished you can insert the micro SD card into your device, connect the ethernet cable and power it on.
 
 -----------------------------------------------------
 
 ### Login 
-You can try to connect to the your device using the hostname of the device (`guh`):
+You can try to connect to the your device using the hostname of the device (`nymea`):
 
-    $ ssh guh@guh.local    # password: guh
+    $ ssh nymea@nymea.local    # password: nymea
 
 
 Depending on the network setup `avahi` sometimes does not work. In that case you can connect to the device using the ip address:
 
-> **Note:** Please replace `192.168.0.X` with the ip of your Raspberry Pi 2.
+> **Note:** Please replace `192.168.0.X` with the ip of your Raspberry Pi 3.
 
-    $ ssh guh@192.168.0.X    # password: guh
+    $ ssh nymea@192.168.0.X    # password: nymea
 
-
------------------------------------------------------
-
-### guh-webinterface
-
-Once the system is started on your device `guhd` should already running. You can connect to the guh-webinterface using following link:
-
-> **Note:** If this link is not working, plase replace `guh.local` with the ip address of your device.
-
-    http://guh.local:3333
  
 # Reference
 -----------------------------------------------------

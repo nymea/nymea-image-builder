@@ -5,7 +5,7 @@
 # Copyright (C) 2015 Martin Wimpress <code@ubuntu-mate.org>
 # Copyright (C) 2015 Rohith Madhavan <rohithmadhavan@gmail.com>
 # Copyright (C) 2015 Ryan Finnie <ryan@finnie.org>
-# Copyright (C) 2016 Simon Stuerz <simon.stuerz@guh.guru>
+# Copyright (C) 2016-2018 Simon Stuerz <simon.stuerz@guh.io>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -29,8 +29,8 @@ set -e
 RELEASE="xenial"
 
 # Image configs
-HOSTNAME="guh"
-USERNAME="guh"
+HOSTNAME="nymea"
+USERNAME="nymea"
 TZDATA="Europe/Vienna"
 
 #########################################################
@@ -47,9 +47,9 @@ DESKTOP_R=${BUILDDIR}/desktop
 ARCH=$(uname -m)
 export TZ=${TZDATA}
 
-TARBALL="$(date +%Y-%m-%d)-guh-ubuntu-${VERSION}-armhf--pi-3-rootfs.tar.bz2"
-IMAGE="$(date +%Y-%m-%d)-guh-ubuntu-${VERSION}-armhf-raspberry-pi-3.img"
-IMAGE_NAME="$(date +%Y-%m-%d)-guh-ubuntu-${VERSION}-armhf-raspberry-pi-3"
+TARBALL="$(date +%Y-%m-%d)-nymea-ubuntu-${VERSION}-armhf-pi-3-rootfs.tar.bz2"
+IMAGE="$(date +%Y-%m-%d)-nymea-ubuntu-${VERSION}-armhf-raspberry-pi-3.img"
+IMAGE_NAME="$(date +%Y-%m-%d)-nymea-ubuntu-${VERSION}-armhf-raspberry-pi-3"
 # Either 'ext4' or 'f2fs'
 FS_TYPE="ext4"
 
@@ -181,7 +181,7 @@ function apt_clean() {
     chroot $R apt-get clean
 }
 
-# Install Ubuntu 
+# Install Ubuntu
 function install_ubuntu() {
     printGreen "Install ubuntu..."
     chroot $R apt-get -y install f2fs-tools software-properties-common
@@ -278,6 +278,7 @@ source-directory /etc/network/interfaces.d
 auto lo
 iface lo inet loopback
 
+# This will be handled by network-manager
 #auto eth0
 #iface eth0 inet dhcp
 EOM
@@ -305,7 +306,7 @@ function configure_hardware() {
 
     printGreen "Install kernel and firmware..."
     # Firmware Kernel installation
-    chroot $R apt-get -y install libraspberrypi-bin libraspberrypi-dev libraspberrypi-doc libraspberrypi0 raspberrypi-bootloader rpi-update
+    chroot $R apt-get -y install libraspberrypi-bin libraspberrypi-dev libraspberrypi-doc libraspberrypi0 raspberrypi-bootloader rpi-update raspi-config
     chroot $R apt-get -y install bluez-firmware linux-firmware pi-bluetooth
 
     # Raspberry Pi 3 WiFi firmware. Package this
@@ -313,6 +314,7 @@ function configure_hardware() {
     cp -v firmware/* $R/lib/firmware/brcm/
     chown root:root $R/lib/firmware/brcm/*
 
+    # Welcome message
     cp -v lib/motd $R/etc/
 
     # Hardware - Create a fake HW clock and add rng-tools
@@ -342,17 +344,21 @@ EOM
     # Set up firmware config
     echo "net.ifnames=0 biosdevname=0 dwc_otg.lpm_enable=0 console=tty1 root=/dev/mmcblk0p2 rootfstype=${FS} elevator=deadline rootwait quiet splash" > $R/boot/cmdline.txt
 
+    # Enable i2c
+    echo "i2c-dev" >> $R/etc/modules
+    echo "dtparam=i2c_arm=on" >> $R/boot/config.txt
+
     # Save the clock
     chroot $R fake-hwclock save
 }
 
 function install_software() {
-    printGreen "Add guh repository..."
+    printGreen "Add nymea repository..."
 
-    cat <<EOM >$R/etc/apt/sources.list.d/guh.list
+    cat <<EOM >$R/etc/apt/sources.list.d/nymea.list
 ## guh repo
-deb http://repository.guh.io ${RELEASE} main
-deb-src http://repository.guh.io ${RELEASE} main
+deb http://repository.nymea.io ${RELEASE} main
+deb-src http://repository.nymea.io ${RELEASE} main
 EOM
 
     # Add the guh repository key
@@ -364,10 +370,10 @@ EOM
     printGreen "Install extra packages..."
     chroot $R apt-get -y install htop nano avahi-utils snapd network-manager
 
-    printGreen "Install guh packages..."
-    chroot $R apt-get -y install guh guh-cli guh-webinterface libguh1-dev guh-plugins-maker
+    printGreen "Install nymea packages..."
+    chroot $R apt-get -y install guh guh-cli guh-webinterface libguh1-dev guh-plugins guh-plugins-maker
 
-    printGreen "Enable guhd autostart..."
+    printGreen "Enable nymead autostart..."
     chroot $R systemctl enable guhd
     chroot $R systemctl enable network-manager
 }
@@ -565,9 +571,13 @@ stage_01_base
 stage_02_desktop
 stage_03_raspi3
 
-printGreen "Compress files ${IMAGE} ..."
+printGreen "Compress ${IMAGE} ..."
 cd ${BASEDIR}/
 zip ${IMAGE_NAME}.zip ${IMAGE}
+xz -z ${IMAGE}
+
+mv -v ${IMAGE}.xz ..
+mv -v ${IMAGE_NAME}.zip ..
 
 #########################################################
 # calculate process time
