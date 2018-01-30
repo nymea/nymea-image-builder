@@ -29,8 +29,8 @@ Here an example how to build an image (in this case Raspberry Pi 3):
 
 Once finished you should find two compressed image files in the script directory (one for `zip`, one fox `xzcat`):
 
-- `$(date +%Y-%m-%d)-guh-ubuntu-16.04-armhf-raspberry-pi-3.zip`
-- `$(date +%Y-%m-%d)-guh-ubuntu-16.04-armhf-raspberry-pi-3.img.xz`
+- `$(date +%Y-%m-%d)-guh-ubuntu-16.04.2-armhf-raspberry-pi-3.zip`
+- `$(date +%Y-%m-%d)-guh-ubuntu-16.04.2-armhf-raspberry-pi-3.img.xz`
 
 
 -----------------------------------------------------
@@ -41,7 +41,7 @@ Once finished you should find two compressed image files in the script directory
 
 > **Note:** Please replace `sdX` with the device of your SD card. You can use `lsblk` to check which device is your SD card. 
 
-    $ xzcat image-file.img.xz | sudo dd of=/dev/sdX
+    $ xzcat image-file.img.xz | sudo dd bs=4M of=/dev/sdX
 
 
 #### Using zip file
@@ -57,7 +57,9 @@ Once the process is finished you can insert the micro SD card into your device, 
 -----------------------------------------------------
 
 ### Login 
-You can try to connect to the your device using the hostname of the device (`nymea`):
+
+The system will boot, create ssh keys, resize the file system and reboot again. Once that process is finished, you can try to connect 
+to the your device using the hostname of the device (`nymea`):
 
     $ ssh nymea@nymea.local    # password: nymea
 
@@ -85,3 +87,4 @@ https://code.launchpad.net/ubuntu-pi-flavour-maker
 
 This is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License 
 as published by the Free Software Foundation, version 2 of the License.
+

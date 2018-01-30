@@ -36,25 +36,27 @@ TZDATA="Europe/Vienna"
 #########################################################
 # Directorys
 TITLE="ubuntu"
-VERSION="16.04"
+VERSION="16.04.2"
 
-BASEDIR=$(pwd)/image-rpi3-build
+SCRIPTDIR=$(pwd)
+BASEDIR=${SCRIPTDIR}/image-rpi3-build
 BUILDDIR=${BASEDIR}/${TITLE}
 MOUNTDIR=$BUILDDIR/mount
 BASE_R=${BASEDIR}/base
-DEVICE_R=${BUILDDIR}/pi2
+DEVICE_R=${BUILDDIR}/pi3
 DESKTOP_R=${BUILDDIR}/desktop
 ARCH=$(uname -m)
 export TZ=${TZDATA}
 
-TARBALL="$(date +%Y-%m-%d)-nymea-ubuntu-${VERSION}-armhf-pi-3-rootfs.tar.bz2"
-IMAGE="$(date +%Y-%m-%d)-nymea-ubuntu-${VERSION}-armhf-raspberry-pi-3.img"
 IMAGE_NAME="$(date +%Y-%m-%d)-nymea-ubuntu-${VERSION}-armhf-raspberry-pi-3"
-# Either 'ext4' or 'f2fs'
+TARBALL="${IMAGE_NAME}-rootfs.tar.bz2"
+IMAGE="${IMAGE_NAME}.img"
+
+# Image config
 FS_TYPE="ext4"
 
-# Either 4, 8 or 16
-FS_SIZE=4
+# Size of the image in GB
+FS_SIZE=2
 
 # Either 0 or 1.
 # - 0 don't make generic rootfs tarball
@@ -98,16 +100,18 @@ function mount_system() {
     echo "nameserver 8.8.8.8" > $R/etc/resolv.conf
 }
 
+#########################################################
 # Unmount host system
 function umount_system() {
     printGreen "Umount system..."
-    umount -l $R/sys
-    umount -l $R/proc
-    umount -l $R/dev/pts
-    umount -l $R/dev
-    echo "" > $R/etc/resolv.conf
+    umount -l $R/sys || true
+    umount -l $R/proc || true
+    umount -l $R/dev/pts || true
+    umount -l $R/dev || true
+    echo "" > $R/etc/resolv.conf || true
 }
 
+#########################################################
 function sync_to() {
     printGreen "Sync ${1}..."
     local TARGET="${1}"
@@ -117,6 +121,7 @@ function sync_to() {
     rsync -a --progress --delete ${R}/ ${TARGET}/
 }
 
+#########################################################
 # Base debootstrap
 function bootstrap() {
     printGreen "Bootstrap..."
@@ -132,9 +137,12 @@ function bootstrap() {
             qemu-debootstrap --verbose --arch=armhf $RELEASE $R http://ports.ubuntu.com/
         fi
         touch "$R/tmp/.bootstrap"
+    else
+        printGreen "Bootstrap already created. Continue..."
     fi
 }
 
+#########################################################
 function generate_locale() {
     printGreen "Generate locale..."
     for LOCALE in $(chroot $R locale | cut -d'=' -f2 | grep -v : | sed 's/"//g' | uniq); do
@@ -144,6 +152,7 @@ function generate_locale() {
     done
 }
 
+#########################################################
 function configure_timezone() {
     printGreen "Setup timezone ${TZDATA}..."
     # Set time zone
@@ -151,6 +160,7 @@ function configure_timezone() {
     chroot $R dpkg-reconfigure -f noninteractive tzdata
 }
 
+#########################################################
 # Set up initial sources.list
 function apt_sources() {
     printGreen "Add source lists..."
@@ -169,18 +179,21 @@ deb-src http://ports.ubuntu.com/ ${RELEASE}-backports main restricted universe m
 EOM
 }
 
+#########################################################
 function apt_upgrade() {
     printGreen "Upgrade..."
     chroot $R apt-get update
     chroot $R apt-get -y -u dist-upgrade
 }
 
+#########################################################
 function apt_clean() {
     printGreen "Clean packages..."
     chroot $R apt-get -y autoremove
     chroot $R apt-get clean
 }
 
+#########################################################
 # Install Ubuntu
 function install_ubuntu() {
     printGreen "Install ubuntu..."
@@ -188,9 +201,12 @@ function install_ubuntu() {
     if [ ! -f "${R}/tmp/.ubuntu" ]; then
         chroot $R apt-get -y install ubuntu-standard
         touch "${R}/tmp/.ubuntu"
+    else
+        printGreen "Ubuntu already installed. Continue..."
     fi
 }
 
+#########################################################
 function create_groups() {
     printGreen "Create groups..."
     chroot $R groupadd -f --system gpio
@@ -199,60 +215,35 @@ function create_groups() {
     chroot $R groupadd -f --system spi
 
     # Create adduser hook
-    cat <<'EOM' >$R/usr/local/sbin/adduser.local
-#!/bin/sh
-# This script is executed as the final step when calling `adduser`
-# USAGE:
-#   adduser.local USER UID GID HOME
-
-# Add user to the Raspberry Pi specific groups
-usermod -a -G adm,gpio,i2c,input,spi,video $1
-EOM
+    cp -v ${SCRIPTDIR}/files/adduser.local $R/usr/local/sbin/
     chmod +x $R/usr/local/sbin/adduser.local
 }
 
+#########################################################
 # Create default user
 function create_user() {
-    printGreen "Create user..."
+    printGreen "Create nymea user..."
     local DATE=$(date +%m%H%M%S)
     local PASSWD=$(mkpasswd -m sha-512 ${USERNAME} ${DATE})
 
-    chroot $R adduser --gecos "guh user" --add_extra_groups --disabled-password ${USERNAME}
+    chroot $R adduser --gecos "nymea user" --add_extra_groups --disabled-password ${USERNAME}
     chroot $R usermod -a -G sudo -p ${PASSWD} ${USERNAME}
 }
 
 
+#########################################################
 function configure_ssh() {
     printGreen "Configure ssh..."
-    chroot $R apt-get -y install openssh-server
-    cat > $R/etc/systemd/system/sshdgenkeys.service << EOF
-[Unit]
-Description=SSH key generation on first startup
-Before=ssh.service
-ConditionPathExists=|!/etc/ssh/ssh_host_key
-ConditionPathExists=|!/etc/ssh/ssh_host_key.pub
-ConditionPathExists=|!/etc/ssh/ssh_host_rsa_key
-ConditionPathExists=|!/etc/ssh/ssh_host_rsa_key.pub
-ConditionPathExists=|!/etc/ssh/ssh_host_dsa_key
-ConditionPathExists=|!/etc/ssh/ssh_host_dsa_key.pub
-ConditionPathExists=|!/etc/ssh/ssh_host_ecdsa_key
-ConditionPathExists=|!/etc/ssh/ssh_host_ecdsa_key.pub
-ConditionPathExists=|!/etc/ssh/ssh_host_ed25519_key
-ConditionPathExists=|!/etc/ssh/ssh_host_ed25519_key.pub
-
-[Service]
-ExecStart=/usr/bin/ssh-keygen -A
-Type=oneshot
-RemainAfterExit=yes
-
-[Install]
-WantedBy=ssh.service
-EOF
-
+    chroot $R apt-get -y install openssh-server sshguard
+    cp -v ${SCRIPTDIR}/files/sshdgenkeys.service $R/etc/systemd/system/
     mkdir -p $R/etc/systemd/system/ssh.service.wants
-    chroot $R ln -s /etc/systemd/system/sshdgenkeys.service /etc/systemd/system/ssh.service.wants
+
+    chroot $R /bin/systemctl enable sshdgenkeys.service
+    chroot $R /bin/systemctl enable ssh.service
+    chroot $R /bin/systemctl enable sshguard.service
 }
 
+#########################################################
 function configure_network() {
     printGreen "Set hostename ${HOSTNAME}..."
 
@@ -285,13 +276,10 @@ EOM
 
 }
 
+#########################################################
 function configure_hardware() {
     printGreen "Configure hardware..."
     local FS="${1}"
-    if [ "${FS}" != "ext4" ] && [ "${FS}" != 'f2fs' ]; then
-        printRed "ERROR! Unsupport filesystem requested. Exitting."
-        exit 1
-    fi
 
     chroot $R apt-get -y update
 
@@ -310,7 +298,7 @@ function configure_hardware() {
     chroot $R apt-get -y install bluez-firmware linux-firmware pi-bluetooth
 
     # Raspberry Pi 3 WiFi firmware. Package this
-    printGreen "Install kernel and firmware..."
+    printGreen "Install brcm firmware..."
     cp -v firmware/* $R/lib/firmware/brcm/
     chown root:root $R/lib/firmware/brcm/*
 
@@ -341,8 +329,14 @@ proc            /proc           proc    defaults          0       0
 /dev/mmcblk0p1  /boot/          vfat    defaults          0       2
 EOM
 
-    # Set up firmware config
-    echo "net.ifnames=0 biosdevname=0 dwc_otg.lpm_enable=0 console=tty1 root=/dev/mmcblk0p2 rootfstype=${FS} elevator=deadline rootwait quiet splash" > $R/boot/cmdline.txt
+    # Set boot cmdline.txt
+    echo "net.ifnames=0 biosdevname=0 fsck.repair=yes dwc_otg.lpm_enable=0 console=tty1 root=/dev/mmcblk0p2 rootfstype=${FS} elevator=deadline rootwait quiet splash init=/usr/lib/raspi-config/init_resize.sh" > $R/boot/cmdline.txt
+
+    # Enable autoresize filesystem at first boot
+    cp -v ${SCRIPTDIR}/files/resize2fs_once $R/etc/init.d/resize2fs_once
+    chmod +x $R/etc/init.d/resize2fs_once
+    cp -v ${SCRIPTDIR}/files/resize-fs.service $R/lib/systemd/system/resize-fs.service
+    chroot $R /bin/systemctl enable resize-fs.service
 
     # Enable i2c
     echo "i2c-dev" >> $R/etc/modules
@@ -352,6 +346,7 @@ EOM
     chroot $R fake-hwclock save
 }
 
+#########################################################
 function install_software() {
     printGreen "Add nymea repository..."
 
@@ -361,14 +356,14 @@ deb http://repository.nymea.io ${RELEASE} main
 deb-src http://repository.nymea.io ${RELEASE} main
 EOM
 
-    # Add the guh repository key
+    # Add the nymea repository key
     chroot $R apt-key adv --keyserver keyserver.ubuntu.com --recv-key A1A19ED6
 
     printGreen "Update..."
     chroot $R apt-get update
 
     printGreen "Install extra packages..."
-    chroot $R apt-get -y install htop nano avahi-utils snapd network-manager
+    chroot $R apt-get -y install htop nano avahi-utils snapd network-manager bluez bluez-tools
 
     printGreen "Install nymea packages..."
     chroot $R apt-get -y install guh guh-cli guh-webinterface libguh1-dev guh-plugins guh-plugins-maker
@@ -378,6 +373,7 @@ EOM
     chroot $R systemctl enable network-manager
 }
 
+#########################################################
 function clean_up() {
     printGreen "Clean up..."
     rm -f $R/etc/apt/*.save || true
@@ -433,71 +429,59 @@ function clean_up() {
     rm -rf $R/tmp/.standard || true
 }
 
+#########################################################
 function make_raspi3_image() {
     printGreen "Create image..."
+
     # Build the image file
     local FS="${1}"
-    local GB=${2}
+    local SIZE_IMG="${2}"
+    local SIZE_BOOT="64MiB"
 
-    if [ "${FS}" != "ext4" ] && [ "${FS}" != 'f2fs' ]; then
-        echo "ERROR! Unsupport filesystem requested. Exitting."
-        exit 1
-    fi
+    # Create an empty file.
+    dd if=/dev/zero of="${BASEDIR}/${IMAGE}" bs=1MB count=1
+    dd if=/dev/zero of="${BASEDIR}/${IMAGE}" bs=1MB count=0 seek=$(( ${SIZE_IMG} * 1000 ))
 
-    if [ ${GB} -ne 4 ] && [ ${GB} -ne 8 ] && [ ${GB} -ne 16 ]; then
-        echo "ERROR! Unsupport card image size requested. Exitting."
-        exit 1
-    fi
+    # Initialising boot patition: msdos
+    parted -s ${BASEDIR}/${IMAGE} mktable msdos
+    printGreen "Creating /boot partition"
+    parted -a optimal -s ${BASEDIR}/${IMAGE} mkpart primary fat32 1 "${SIZE_BOOT}"
+    printGreen "Creating /root partition"
+    parted -a optimal -s ${BASEDIR}/${IMAGE} mkpart primary ext4 "${SIZE_BOOT}" 100%
 
-    if [ ${GB} -eq 4 ]; then
-        SEEK=3750
-        SIZE=7546880
-        SIZE_LIMIT=3685
-    elif [ ${GB} -eq 8 ]; then
-        SEEK=7680
-        SIZE=15728639
-        SIZE_LIMIT=7615
-    elif [ ${GB} -eq 16 ]; then
-        SEEK=15360
-        SIZE=31457278
-        SIZE_LIMIT=15230
-    fi
+    PARTED_OUT=$(parted -s ${BASEDIR}/${IMAGE} unit b print)
+    BOOT_OFFSET=$(echo "${PARTED_OUT}" | grep -e '^ 1'| xargs echo -n \
+    | cut -d" " -f 2 | tr -d B)
+    BOOT_LENGTH=$(echo "${PARTED_OUT}" | grep -e '^ 1'| xargs echo -n \
+    | cut -d" " -f 4 | tr -d B)
 
-    # If a compress version exists, remove it.
-    rm -f "${BASEDIR}/${IMAGE}.bz2" || true
+    ROOT_OFFSET=$(echo "${PARTED_OUT}" | grep -e '^ 2'| xargs echo -n \
+    | cut -d" " -f 2 | tr -d B)
+    ROOT_LENGTH=$(echo "${PARTED_OUT}" | grep -e '^ 2'| xargs echo -n \
+    | cut -d" " -f 4 | tr -d B)
 
-    dd if=/dev/zero of="${BASEDIR}/${IMAGE}" bs=1M count=1
-    dd if=/dev/zero of="${BASEDIR}/${IMAGE}" bs=1M count=0 seek=${SEEK}
+    BOOT_LOOP=$(losetup --show -f -o ${BOOT_OFFSET} --sizelimit ${BOOT_LENGTH} ${BASEDIR}/${IMAGE})
+    ROOT_LOOP=$(losetup --show -f -o ${ROOT_OFFSET} --sizelimit ${ROOT_LENGTH} ${BASEDIR}/${IMAGE})
+    printGreen "/boot: offset ${BOOT_OFFSET}, length ${BOOT_LENGTH}"
+    printGreen "/:     offset ${ROOT_OFFSET}, length ${ROOT_LENGTH}"
 
-    sfdisk -f "$BASEDIR/${IMAGE}" <<EOM
-unit: sectors
-
-1 : start=     2048, size=   131072, Id= c, bootable
-2 : start=   133120, size=  ${SIZE}, Id=83
-3 : start=        0, size=        0, Id= 0
-4 : start=        0, size=        0, Id= 0
-EOM
-
-    BOOT_LOOP="$(losetup -o 1M --sizelimit 64M -f --show ${BASEDIR}/${IMAGE})"
-    ROOT_LOOP="$(losetup -o 65M --sizelimit ${SIZE_LIMIT}M -f --show ${BASEDIR}/${IMAGE})"
     mkfs.vfat -n PI_BOOT -S 512 -s 16 -v "${BOOT_LOOP}"
-    if [ "${FS}" == "ext4" ]; then
-        mkfs.ext4 -L PI_ROOT -m 0 "${ROOT_LOOP}"
-    else
-        mkfs.f2fs -l PI_ROOT -o 1 "${ROOT_LOOP}"
-    fi
+    mkfs.ext4 -L PI_ROOT -m 0 -O ^huge_file "${ROOT_LOOP}"
+
     MOUNTDIR="${BUILDDIR}/mount"
     mkdir -p "${MOUNTDIR}"
-    mount "${ROOT_LOOP}" "${MOUNTDIR}"
+    mount -v "${ROOT_LOOP}" "${MOUNTDIR}" -t "${FS}"
     mkdir -p "${MOUNTDIR}/boot"
-    mount "${BOOT_LOOP}" "${MOUNTDIR}/boot"
-    rsync -a --progress "$R/" "${MOUNTDIR}/"
+    mount -v "${BOOT_LOOP}" "${MOUNTDIR}/boot" -t vfat
+    rsync -aHAXx "$R/" "${MOUNTDIR}/"
+    sync
     umount -l "${MOUNTDIR}/boot"
     umount -l "${MOUNTDIR}"
     losetup -d "${ROOT_LOOP}"
     losetup -d "${BOOT_LOOP}"
 }
 
+#########################################################
 function make_tarball() {
     if [ ${MAKE_TARBALL} -eq 1 ]; then
         printGreen "Create tarball..."
@@ -506,6 +490,7 @@ function make_tarball() {
     fi
 }
 
+#########################################################
 function stage_01_base() {
     printGreen "================================================"
     printGreen "Stage 1 - Base system"
@@ -524,6 +509,7 @@ function stage_01_base() {
     sync_to ${DESKTOP_R}
 }
 
+#########################################################
 function stage_02_desktop() {
     printGreen "================================================"
     printGreen "Stage 2 - Configuration"
@@ -544,6 +530,7 @@ function stage_02_desktop() {
     make_tarball
 }
 
+#########################################################
 function stage_03_raspi3() {
     printGreen "================================================"
     printGreen "Stage 3 - Create image"
@@ -561,12 +548,30 @@ function stage_03_raspi3() {
 }
 
 #########################################################
-# Start
-startTime=$(date +%s)
+function trapCallback() {
+    errorCode="$?"
 
+    if [ "${errorCode}" != "0" ]; then
+        printRed "Error occured: exit status ${errorCode}"
+        printRed "Clean up and umount possible mounted paths"
+        for R in $BASE_R $DESKTOP_R $DEVICE_R; do
+            umount -l $R/proc || true
+            umount -l $R/sys || true
+            umount -l $R/dev/pts || true
+            umount -l $R/dev || true
+        done
+    fi
+    exit ${errorCode}
+}
 
 #########################################################
 # Main
+#########################################################
+
+trap trapCallback EXIT
+
+startTime=$(date +%s)
+
 stage_01_base
 stage_02_desktop
 stage_03_raspi3
@@ -579,7 +584,6 @@ xz -z ${IMAGE}
 mv -v ${IMAGE}.xz ..
 mv -v ${IMAGE_NAME}.zip ..
 
-#########################################################
 # calculate process time
 endTime=$(date +%s)
 dt=$((endTime - startTime))
