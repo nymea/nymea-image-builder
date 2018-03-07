@@ -26,6 +26,8 @@ set -e
 
 ##########################################################
 # Set the relase
+TITLE="ubuntu"
+VERSION="17.10"
 RELEASE="artful"
 
 # Image configs
@@ -35,8 +37,6 @@ TZDATA="Europe/Vienna"
 
 #########################################################
 # Directorys
-TITLE="ubuntu"
-VERSION="17.10"
 
 SCRIPTDIR=$(pwd)
 BASEDIR=${SCRIPTDIR}/image-rpi3-build-artful
@@ -48,7 +48,7 @@ DESKTOP_R=${BUILDDIR}/desktop
 ARCH=$(uname -m)
 export TZ=${TZDATA}
 
-IMAGE_NAME="$(date +%Y-%m-%d)-nymea-ubuntu-${VERSION}-${RELEASE}-armhf-raspberry-pi-3"
+IMAGE_NAME="$(date +%Y-%m-%d)-nymea-${TITLE}-${VERSION}-${RELEASE}-armhf-raspberry-pi-3"
 TARBALL="${IMAGE_NAME}-rootfs.tar.bz2"
 IMAGE="${IMAGE_NAME}.img"
 
