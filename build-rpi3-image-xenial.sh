@@ -26,7 +26,9 @@ set -e
 
 ##########################################################
 # Set the relase
+TITLE="ubuntu"
 RELEASE="xenial"
+VERSION="16.04.4"
 
 # Image configs
 HOSTNAME="nymea"
@@ -35,8 +37,6 @@ TZDATA="Europe/Vienna"
 
 #########################################################
 # Directorys
-TITLE="ubuntu"
-VERSION="16.04.2"
 
 SCRIPTDIR=$(pwd)
 BASEDIR=${SCRIPTDIR}/image-rpi3-build
@@ -48,7 +48,7 @@ DESKTOP_R=${BUILDDIR}/desktop
 ARCH=$(uname -m)
 export TZ=${TZDATA}
 
-IMAGE_NAME="$(date +%Y-%m-%d)-nymea-ubuntu-${VERSION}-armhf-raspberry-pi-3"
+IMAGE_NAME="$(date +%Y-%m-%d)-nymea-${TITLE}-${RELEASE}-${VERSION}-armhf-raspberry-pi-3"
 TARBALL="${IMAGE_NAME}-rootfs.tar.bz2"
 IMAGE="${IMAGE_NAME}.img"
 
@@ -150,6 +150,8 @@ function generate_locale() {
             chroot $R locale-gen $LOCALE
         fi
     done
+    # Set default LC_ALL and LANGUAGE
+    echo "LC_ALL=en_US.UTF-8\nLANGUAGE=en_US.UTF-8" >> $R/etc/default/locale
 }
 
 #########################################################

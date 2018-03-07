@@ -140,8 +140,6 @@ function bootstrap() {
     else
         printGreen "Bootstrap already created. Continue..."
     fi
-
-    exit 1
 }
 
 #########################################################
