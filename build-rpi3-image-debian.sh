@@ -106,7 +106,7 @@ printRed() {
 
 #------------------------------------------------------------------------------------------
 # Mount host system
-function mount_system() {
+function mountSystem() {
     printGreen "Mount system $R"
     # In case this is a re-run move the cofi preload out of the way
     if [ -e $R/etc/ld.so.preload ]; then
@@ -121,7 +121,7 @@ function mount_system() {
 
 #------------------------------------------------------------------------------------------
 # Unmount host system
-function umount_system() {
+function umountSystem() {
     printGreen "Umount system $R"
     umount -l $R/sys || true
     umount -l $R/proc || true
@@ -130,7 +130,7 @@ function umount_system() {
 }
 
 #------------------------------------------------------------------------------------------
-function sync_to() {
+function syncTo() {
     printGreen "Sync ${1}..."
     local TARGET="${1}"
     if [ ! -d "${TARGET}" ]; then
@@ -162,7 +162,7 @@ function bootstrap() {
 }
 
 #------------------------------------------------------------------------------------------
-function generate_locale() {
+function generateLocale() {
     printGreen "Generate locale..."
     chroot $R apt-get -y install locales
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' $R/etc/locale.gen
@@ -207,7 +207,7 @@ function apt_install_noniteractive() {
 
 
 #------------------------------------------------------------------------------------------
-function apt_clean() {
+function aptClean() {
     printGreen "Clean packages..."
     chroot $R apt-get -y autoremove
     chroot $R apt-get clean
@@ -215,7 +215,7 @@ function apt_clean() {
 
 #------------------------------------------------------------------------------------------
 # Install debian default packages
-function install_ubuntu() {
+function installDebian() {
     printGreen "Install debian default packages..."
     apt_install_noniteractive f2fs-tools software-properties-common
     if [ ! -f "${R}/tmp/.debian" ]; then
@@ -234,7 +234,7 @@ function install_ubuntu() {
 }
 
 #------------------------------------------------------------------------------------------
-function create_groups() {
+function createGroups() {
     printGreen "Create groups..."
     chroot $R groupadd -f --system gpio
     chroot $R groupadd -f --system i2c
@@ -251,7 +251,7 @@ function create_groups() {
 
 #------------------------------------------------------------------------------------------
 # Create default user
-function create_user() {
+function createUser() {
     printGreen "Create nymea user..."
     local DATE=$(date +%m%H%M%S)
     local PASSWD=$(mkpasswd -m sha-512 ${USERNAME} ${DATE})
@@ -262,7 +262,7 @@ function create_user() {
 
 
 #------------------------------------------------------------------------------------------
-function configure_ssh() {
+function configureSsh() {
     printGreen "Configure ssh..."
     chroot $R apt-get -y install openssh-server sshguard
     cp -v ${SCRIPTDIR}/files/sshdgenkeys.service $R/etc/systemd/system/
@@ -376,7 +376,7 @@ EOM
 }
 
 #------------------------------------------------------------------------------------------
-function install_software() {
+function installSoftware() {
     printGreen "Add nymea repository..."
 
     # Add the nymea repository key
@@ -402,19 +402,18 @@ EOM
     chroot $R apt-get -y install nymea nymea-cli libnymea1-dev nymea-plugins nymea-plugins-maker
 
     printGreen "Enable nymead autostart..."
-    chroot $R systemctl enable nymea
+    chroot $R systemctl enable nymead.service
     chroot $R systemctl enable network-manager
 
     printGreen "Add aliases to bashrc..."
-    echo "" >> $R/etc/bash.bashrc
-    echo "# Custom alias for nice bash experience" >> $R/etc/bash.bashrc
+    echo -e "\n# Custom alias for nice bash experience\n" >> $R/etc/bash.bashrc
     echo "alias ls='ls --color=auto'" >> $R/etc/bash.bashrc
     echo "alias ll='ls -lah'" >> $R/etc/bash.bashrc
 
 }
 
 #------------------------------------------------------------------------------------------
-function clean_up() {
+function cleanUp() {
     printGreen "Clean up..."
     rm -f $R/etc/apt/*.save || true
     rm -f $R/etc/apt/sources.list.d/*.save || true
@@ -470,7 +469,7 @@ function clean_up() {
 }
 
 #------------------------------------------------------------------------------------------
-function make_raspi3_image() {
+function createImage() {
     printGreen "Create image..."
 
     # Build the image file
@@ -522,7 +521,7 @@ function make_raspi3_image() {
 }
 
 #------------------------------------------------------------------------------------------
-function make_tarball() {
+function makeTarball() {
     if [ ${MAKE_TARBALL} -eq 1 ]; then
         printGreen "Create tarball..."
         rm -f "${BASEDIR}/${TARBALL}" || true
@@ -531,60 +530,60 @@ function make_tarball() {
 }
 
 #------------------------------------------------------------------------------------------
-function stage_01_base() {
+function stageBaseSystem() {
     printGreen "================================================"
     printGreen "Stage 1 - Base system"
     printGreen "================================================"
 
     R="${BASE_R}"
     bootstrap
-    mount_system
+    mountSystem
     apt_sources
     apt_upgrade
-    generate_locale
-    install_ubuntu
-    apt_clean
+    generateLocale
+    installDebian
+    aptClean
     configure_timezone
-    umount_system
-    sync_to ${DESKTOP_R}
+    umountSystem
+    syncTo ${DESKTOP_R}
 }
 
 #------------------------------------------------------------------------------------------
-function stage_02_desktop() {
+function stageConfiguration() {
     printGreen "================================================"
     printGreen "Stage 2 - Configuration"
     printGreen "================================================"
 
     R="${DESKTOP_R}"
-    mount_system
+    mountSystem
 
-    create_groups
-    create_user
-    configure_ssh
+    createGroups
+    createUser
+    configureSsh
     configure_network
     apt_upgrade
-    apt_clean
-    umount_system
-    clean_up
-    sync_to ${DEVICE_R}
-    make_tarball
+    aptClean
+    umountSystem
+    cleanUp
+    syncTo ${DEVICE_R}
+    makeTarball
 }
 
 #------------------------------------------------------------------------------------------
-function stage_03_raspi3() {
+function stageImageBuild() {
     printGreen "================================================"
     printGreen "Stage 3 - Create image"
     printGreen "================================================"
 
     R="${DEVICE_R}"
-    mount_system
+    mountSystem
     configure_hardware ${FS_TYPE}
-    install_software
+    installSoftware
     apt_upgrade
-    apt_clean
-    clean_up
-    umount_system
-    make_raspi3_image ${FS_TYPE} ${FS_SIZE}
+    aptClean
+    cleanUp
+    umountSystem
+    createImage ${FS_TYPE} ${FS_SIZE}
 }
 
 #------------------------------------------------------------------------------------------
@@ -628,13 +627,12 @@ if [ ${UID} -ne 0 ]; then
 fi
 
 trap trapCallback EXIT
-trap trapCallback INT
 
 startTime=$(date +%s)
 
-stage_01_base
-stage_02_desktop
-stage_03_raspi3
+stageBaseSystem
+stageConfiguration
+stageImageBuild
 
 printGreen "Compress ${IMAGE} ..."
 cd ${BASEDIR}/
