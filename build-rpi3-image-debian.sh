@@ -148,7 +148,7 @@ function generate_locale() {
     chroot $R apt-get -y install locales
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' $R/etc/locale.gen
     chroot $R  locale-gen en_US.UTF-8
-
+    echo "LC_ALL=en_US.UTF-8\nLANGUAGE=en_US.UTF-8" >> $R/etc/default/locale
 }
 
 #########################################################
@@ -192,7 +192,7 @@ function install_ubuntu() {
     printGreen "Install debian default packages..."
     chroot $R apt-get -y install f2fs-tools software-properties-common
     if [ ! -f "${R}/tmp/.debian" ]; then
-        chroot $R apt-get -y install adduser libc-bin apt apt-utils bzip2 console-setup debconf debconf-i18n eject gnupg ifupdown \
+        chroot $R DEBIAN_FRONTEND=noninteractive apt-get -yq install adduser libc-bin apt apt-utils bzip2 console-setup debconf debconf-i18n eject gnupg ifupdown \
                                      initramfs-tools iproute2 iputils-ping isc-dhcp-client kbd kmod less nano locales lsb-release \
                                      makedev mawk net-tools netbase netcat-openbsd passwd procps python3 resolvconf rsyslog sudo \
                                      tzdata debian-keyring udev vim-tiny whiptail tcpdump telnet ufw cpio cron dnsutils \
