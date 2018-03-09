@@ -148,7 +148,7 @@ function generate_locale() {
     chroot $R apt-get -y install locales
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' $R/etc/locale.gen
     chroot $R  locale-gen en_US.UTF-8
-    echo "LC_ALL=en_US.UTF-8\nLANGUAGE=en_US.UTF-8" >> $R/etc/default/locale
+    echo -e "LC_ALL=en_US.UTF-8\nLANGUAGE=en_US.UTF-8" >> $R/etc/default/locale
 }
 
 #########################################################
@@ -360,11 +360,10 @@ function install_software() {
 
 
     cat <<EOM >$R/etc/apt/sources.list.d/nymea.list
-## guh repo
+## nymea repo
 deb http://repository.nymea.io ${RELEASE} main
 deb-src http://repository.nymea.io ${RELEASE} main
 EOM
-
 
     printGreen "Update..."
     chroot $R apt-get update
@@ -373,10 +372,10 @@ EOM
     chroot $R apt-get -y install htop avahi-utils snapd network-manager bluez bluez-tools
 
     printGreen "Install nymea packages..."
-    chroot $R apt-get -y install guh guh-cli guh-webinterface libguh1-dev guh-plugins guh-plugins-maker
+    chroot $R apt-get -y install nymea nymea-cli libnymea1-dev nymea-plugins nymea-plugins-maker
 
     printGreen "Enable nymead autostart..."
-    chroot $R systemctl enable guhd
+    chroot $R systemctl enable nymea
     chroot $R systemctl enable network-manager
 
     printGreen "Add aliases to bashrc..."
