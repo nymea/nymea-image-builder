@@ -24,7 +24,7 @@
 
 set -e
 
-##########################################################
+#------------------------------------------------------------------------------------------
 # Set the relase
 TITLE="ubuntu"
 RELEASE="xenial"
@@ -35,7 +35,7 @@ HOSTNAME="nymea"
 USERNAME="nymea"
 TZDATA="Europe/Vienna"
 
-#########################################################
+#------------------------------------------------------------------------------------------
 # Directorys
 
 SCRIPTDIR=$(pwd)
@@ -63,21 +63,47 @@ FS_SIZE=2
 # - 1 make a generic rootfs tarball
 MAKE_TARBALL=0
 
-########################################################
+#------------------------------------------------------------------------------------------
+# Settings
+
+COLORS=true
+
+#------------------------------------------------------------------------------------------
+function usage() {
+  cat <<EOF
+Usage: $(basename $0) [OPTIONS]
+
+OPTIONS:
+  -n, --no-colors         Disable colorfull output
+  -h, --help              Show this message
+
+EOF
+}
+
+
+#------------------------------------------------------------------------------------------
 # bash colors
 BASH_GREEN="\e[1;32m"
 BASH_RED="\e[1;31m"
 BASH_NORMAL="\e[0m"
 
 printGreen() {
-    echo -e "${BASH_GREEN}$1${BASH_NORMAL}"
+    if ${COLORS}; then
+        echo -e "${BASH_GREEN}[+] $1${BASH_NORMAL}"
+    else
+        echo -e "[+] $1"
+    fi
 }
 
 printRed() {
-    echo -e "${BASH_RED}$1${BASH_NORMAL}"
+    if ${COLORS}; then
+        echo -e "${BASH_RED}[+] $1${BASH_NORMAL}"
+    else
+        echo -e "[+] $1"
+    fi
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 # check root
 if [ ${UID} -ne 0 ]; then
     printRed "Please start the script as root."
@@ -85,7 +111,7 @@ if [ ${UID} -ne 0 ]; then
 fi
 
 
-#########################################################
+#------------------------------------------------------------------------------------------
 # Mount host system
 function mount_system() {
     printGreen "Mount system..."
@@ -100,7 +126,7 @@ function mount_system() {
     echo "nameserver 8.8.8.8" > $R/etc/resolv.conf
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 # Unmount host system
 function umount_system() {
     printGreen "Umount system..."
@@ -111,7 +137,7 @@ function umount_system() {
     echo "" > $R/etc/resolv.conf || true
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function sync_to() {
     printGreen "Sync ${1}..."
     local TARGET="${1}"
@@ -121,7 +147,7 @@ function sync_to() {
     rsync -a --progress --delete ${R}/ ${TARGET}/
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 # Base debootstrap
 function bootstrap() {
     printGreen "Bootstrap..."
@@ -142,7 +168,7 @@ function bootstrap() {
     fi
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function generate_locale() {
     printGreen "Generate locale..."
     for LOCALE in $(chroot $R locale | cut -d'=' -f2 | grep -v : | sed 's/"//g' | uniq); do
@@ -154,7 +180,7 @@ function generate_locale() {
     echo -e "LC_ALL=en_US.UTF-8\nLANGUAGE=en_US.UTF-8" >> $R/etc/default/locale
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function configure_timezone() {
     printGreen "Setup timezone ${TZDATA}..."
     # Set time zone
@@ -162,7 +188,7 @@ function configure_timezone() {
     chroot $R dpkg-reconfigure -f noninteractive tzdata
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 # Set up initial sources.list
 function apt_sources() {
     printGreen "Add source lists..."
@@ -181,21 +207,21 @@ deb-src http://ports.ubuntu.com/ ${RELEASE}-backports main restricted universe m
 EOM
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function apt_upgrade() {
     printGreen "Upgrade..."
     chroot $R apt-get update
     chroot $R apt-get -y -u dist-upgrade
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function apt_clean() {
     printGreen "Clean packages..."
     chroot $R apt-get -y autoremove
     chroot $R apt-get clean
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 # Install Ubuntu
 function install_ubuntu() {
     printGreen "Install ubuntu..."
@@ -208,7 +234,7 @@ function install_ubuntu() {
     fi
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function create_groups() {
     printGreen "Create groups..."
     chroot $R groupadd -f --system gpio
@@ -221,7 +247,7 @@ function create_groups() {
     chmod +x $R/usr/local/sbin/adduser.local
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 # Create default user
 function create_user() {
     printGreen "Create nymea user..."
@@ -233,7 +259,7 @@ function create_user() {
 }
 
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function configure_ssh() {
     printGreen "Configure ssh..."
     chroot $R apt-get -y install openssh-server sshguard
@@ -245,7 +271,7 @@ function configure_ssh() {
     chroot $R /bin/systemctl enable sshguard.service
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function configure_network() {
     printGreen "Set hostename ${HOSTNAME}..."
 
@@ -278,7 +304,7 @@ EOM
 
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function configure_hardware() {
     printGreen "Configure hardware..."
     local FS="${1}"
@@ -348,7 +374,7 @@ EOM
     chroot $R fake-hwclock save
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function install_software() {
     printGreen "Add nymea repository..."
 
@@ -375,7 +401,7 @@ EOM
     chroot $R systemctl enable network-manager
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function clean_up() {
     printGreen "Clean up..."
     rm -f $R/etc/apt/*.save || true
@@ -431,7 +457,7 @@ function clean_up() {
     rm -rf $R/tmp/.standard || true
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function make_raspi3_image() {
     printGreen "Create image..."
 
@@ -483,7 +509,7 @@ function make_raspi3_image() {
     losetup -d "${BOOT_LOOP}"
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function make_tarball() {
     if [ ${MAKE_TARBALL} -eq 1 ]; then
         printGreen "Create tarball..."
@@ -492,7 +518,7 @@ function make_tarball() {
     fi
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function stage_01_base() {
     printGreen "================================================"
     printGreen "Stage 1 - Base system"
@@ -511,7 +537,7 @@ function stage_01_base() {
     sync_to ${DESKTOP_R}
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function stage_02_desktop() {
     printGreen "================================================"
     printGreen "Stage 2 - Configuration"
@@ -532,7 +558,7 @@ function stage_02_desktop() {
     make_tarball
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function stage_03_raspi3() {
     printGreen "================================================"
     printGreen "Stage 3 - Create image"
@@ -549,7 +575,7 @@ function stage_03_raspi3() {
     make_raspi3_image ${FS_TYPE} ${FS_SIZE}
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 function trapCallback() {
     errorCode="$?"
 
@@ -566,9 +592,28 @@ function trapCallback() {
     exit ${errorCode}
 }
 
-#########################################################
+#------------------------------------------------------------------------------------------
 # Main
-#########################################################
+#------------------------------------------------------------------------------------------
+
+while [ "$1" != "" ]; do
+    case $1 in
+        -n | --no-colors )
+            COLORS=false;;
+        -h | --help )
+            usage && exit 0;;
+        * )
+            usage && exit 1;;
+    esac
+    shift
+done
+
+#------------------------------------------------------------------------------------------
+# check root
+if [ ${UID} -ne 0 ]; then
+    printRed "Please start the script as root."
+    exit 1
+fi
 
 trap trapCallback EXIT
 
