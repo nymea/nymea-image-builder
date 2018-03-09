@@ -164,10 +164,9 @@ function bootstrap() {
 #------------------------------------------------------------------------------------------
 function generate_locale() {
     printGreen "Generate locale..."
-    chroot $R export DEBIAN_FRONTEND=noninteractive
     chroot $R apt-get -y install locales
     sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' $R/etc/locale.gen
-    chroot $R  locale-gen en_US.UTF-8
+    chroot $R locale-gen en_US.UTF-8
     echo -e "LC_ALL=en_US.UTF-8\nLANGUAGE=en_US.UTF-8" >> $R/etc/default/locale
 }
 
@@ -200,6 +199,14 @@ function apt_upgrade() {
 }
 
 #------------------------------------------------------------------------------------------
+function apt_install_noniteractive() {
+    packages="$@"
+    printGreen "Install non interactive $packages"
+    chroot $R /bin/bash -c -x "export DEBIAN_FRONTEND=noninteractive && apt-get -q -y --force-yes install ${packages}"
+}
+
+
+#------------------------------------------------------------------------------------------
 function apt_clean() {
     printGreen "Clean packages..."
     chroot $R apt-get -y autoremove
@@ -207,20 +214,19 @@ function apt_clean() {
 }
 
 #------------------------------------------------------------------------------------------
-# Install Ubuntu
+# Install debian default packages
 function install_ubuntu() {
     printGreen "Install debian default packages..."
-    chroot $R apt-get -y install f2fs-tools software-properties-common
+    apt_install_noniteractive f2fs-tools software-properties-common
     if [ ! -f "${R}/tmp/.debian" ]; then
-        chroot $R export DEBIAN_FRONTEND=noninteractive
-        chroot $R apt-get -yq install adduser libc-bin apt apt-utils bzip2 console-setup debconf debconf-i18n eject gnupg ifupdown \
-                                     initramfs-tools iproute2 iputils-ping isc-dhcp-client kbd kmod less nano locales lsb-release \
-                                     makedev mawk net-tools netbase netcat-openbsd passwd procps python3 resolvconf rsyslog sudo \
-                                     tzdata debian-keyring udev vim-tiny whiptail tcpdump telnet ufw cpio cron dnsutils \
-                                     ed file ftp hdparm info iptables libpam-systemd logrotate lshw lsof \
-                                     ltrace man-db mime-support parted pciutils psmisc rsync strace systemd-sysv time usbutils wget \
-                                     apparmor apt-transport-https bash-completion command-not-found friendly-recovery iputils-tracepath \
-                                     irqbalance manpages mlocate mtr-tiny ntfs-3g openssh-client uuid-runtime dirmngr
+        apt_install_noniteractive adduser libc-bin apt apt-utils bzip2 console-setup debconf debconf-i18n eject gnupg ifupdown \
+                                  initramfs-tools iproute2 iputils-ping isc-dhcp-client kbd kmod less nano locales lsb-release \
+                                  makedev mawk net-tools netbase netcat-openbsd passwd procps python3 resolvconf rsyslog sudo \
+                                  tzdata debian-keyring udev vim-tiny whiptail tcpdump telnet ufw cpio cron dnsutils \
+                                  ed file ftp hdparm info iptables libpam-systemd logrotate lshw lsof \
+                                  ltrace man-db mime-support parted pciutils psmisc rsync strace systemd-sysv time usbutils wget \
+                                  apparmor apt-transport-https bash-completion command-not-found friendly-recovery iputils-tracepath \
+                                  irqbalance manpages mlocate mtr-tiny ntfs-3g openssh-client uuid-runtime dirmngr
         touch "${R}/tmp/.debian"
     else
         printGreen "Debian default packages already installed. Continue..."
@@ -622,6 +628,7 @@ if [ ${UID} -ne 0 ]; then
 fi
 
 trap trapCallback EXIT
+trap trapCallback INT
 
 startTime=$(date +%s)
 
