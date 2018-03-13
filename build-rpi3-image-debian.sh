@@ -399,10 +399,11 @@ EOM
     chroot $R apt-get -y install htop avahi-utils snapd network-manager bluez bluez-tools
 
     printGreen "Install nymea packages..."
-    chroot $R apt-get -y install nymea nymea-cli libnymea1-dev nymea-plugins nymea-plugins-maker
+    chroot $R apt-get -y install nymea nymea-cli libnymea1-dev nymea-plugins nymea-plugins-maker nymea-networkmanager
 
     printGreen "Enable nymead autostart..."
     chroot $R systemctl enable nymead.service
+    chroot $R systemctl enable nymea-networkmanager
     chroot $R systemctl enable network-manager
 
     printGreen "Add aliases to bashrc..."

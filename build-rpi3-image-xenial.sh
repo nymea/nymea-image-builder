@@ -372,6 +372,11 @@ EOM
 
     # Save the clock
     chroot $R fake-hwclock save
+
+    printGreen "Add aliases to bashrc..."
+    echo -e "\n# Custom alias for nice bash experience\n" >> $R/etc/bash.bashrc
+    echo "alias ls='ls --color=auto'" >> $R/etc/bash.bashrc
+    echo "alias ll='ls -lah'" >> $R/etc/bash.bashrc
 }
 
 #------------------------------------------------------------------------------------------
