@@ -1,0 +1,80 @@
+#!/bin/bash -e
+
+source common/common.sh
+
+#------------------------------------------------------------------------------------------
+function usage() {
+  cat <<EOF
+Usage: $(basename $0) [OPTIONS]
+
+OPTIONS:
+  -c, --clean             Clean image directories specific for this build
+  -n, --no-colors         Disable colorfull output
+  -h, --help              Show this message
+
+EOF
+}
+
+#------------------------------------------------------------------------------------------
+# Main
+#------------------------------------------------------------------------------------------
+
+COLORS=true
+CLEAN=false
+
+while [ "$1" != "" ]; do
+    case $1 in
+        -c | --clean )
+            CLEAN=true;;
+        -n | --no-colors )
+            COLORS=false;;
+        -h | --help )
+            usage && exit 0;;
+        * )
+            usage && exit 1;;
+    esac
+    shift
+done
+
+#------------------------------------------------------------------------------------------
+# Set the relase
+NAME=nymea-community # The name of the image
+TITLE="debian" # debian | ubuntu
+RELEASE="stretch" # xenial | stretch
+VERSION="9" # Version of the OS i.e. 16.04.4
+
+# System configs
+HOSTNAME="nymea"
+USERNAME="nymea"
+TZDATA="Europe/Vienna"
+
+# Image config
+SIZE=2 # In GB
+GPU_ENABLED=true # Enable the GPU on the raspberry pi 3
+GPU_MEMORY=256 # The memory size for the GPU
+
+#------------------------------------------------------------------------------------------
+# Init env
+checkRoot
+initEnv
+
+#------------------------------------------------------------------------------------------
+# Check clean
+if ${CLEAN}; then
+    cleanBuild
+    exit 0
+fi
+
+#------------------------------------------------------------------------------------------
+# Build base system
+buildNymeaSystemDebian
+
+#------------------------------------------------------------------------------------------
+# Customize base system
+printGreen "Start customizing image"
+configureNymeaRepository
+
+#------------------------------------------------------------------------------------------
+# Build final image file
+createImage
+printTime

@@ -1,0 +1,266 @@
+#!/bin/bash
+
+IMAGENAME=nymea-image-builder-xenial-amd64
+
+#------------------------------------------------------------------------------------------
+function usage() {
+  cat <<EOF
+Usage: $(basename $0) [OPTIONS]
+
+OPTIONS:
+  shell                   Log into shell from builder container
+  clean                   Run the clean command of the build script
+  stop                    Stop the builder container
+  start                   Start the builder container
+  delete                  Delete the image builder container
+  -s, --script [SCRIPT]   The build script for the image
+  -d, --directory [DIR]   The build directory where the build script is located
+  -n, --no-colors         Disable colorfull output
+  -h, --help              Show this message
+
+EOF
+}
+
+#------------------------------------------------------------------------------------------
+# bash colors
+BASH_GREEN="\e[1;32m"
+BASH_ORANGE="\e[33m"
+BASH_RED="\e[1;31m"
+BASH_NORMAL="\e[0m"
+
+printGreen() {
+    if ${COLORS}; then
+        echo -e "${BASH_GREEN}[+] Image builder: $1${BASH_NORMAL}"
+    else
+        echo -e "[+] Image builder: $1"
+    fi
+}
+
+printOrange() {
+    if ${COLORS}; then
+        echo -e "${BASH_ORANGE}[-] Image builder: $1${BASH_NORMAL}"
+    else
+        echo -e "[-] Image builder: $1"
+    fi
+}
+
+printRed() {
+    if ${COLORS}; then
+        echo -e "${BASH_RED}[!] Image builder: $1${BASH_NORMAL}"
+    else
+        echo -e "[!] Image builder: $1"
+    fi
+}
+
+#------------------------------------------------------------------------------------------
+waitContainerNetwork() {
+    printGreen "Wait for container getting online"
+    NETWORK_UP=0
+    for i in `seq 1 20`; do
+        if lxc info ${IMAGENAME} | grep -e "eth0.*inet\b" > /dev/null 2>&1 ; then
+            NETWORK_UP=1
+            printGreen "Container is online"
+            break
+        fi
+        sleep 1
+    done
+
+    if [ $NETWORK_UP -ne 1 ] ; then
+        printRed "Container is not connected to the Internet."
+        exit 1
+    fi
+}
+
+#------------------------------------------------------------------------------------------
+containerRunning() {
+    lxc list | grep nymea-image-builder-xenial-amd64 | grep RUNNING > /dev/null 2>&1
+    return $?
+}
+
+#------------------------------------------------------------------------------------------
+createContainer() {
+    printGreen "Create lxc container ${IMAGENAME} for image building"
+    if lxc info ${IMAGENAME} > /dev/null 2>&1 ; then
+        printOrange "--> Container ${IMAGENAME} already exists."
+        startContainer
+        return 0
+    fi
+
+    # Get the xenial image
+    printGreen "Create image ${IMAGENAME}"
+    lxc init ubuntu:16.04 ${IMAGENAME}
+
+    # Add loop devices
+    lxc config device add ${IMAGENAME} loop0 unix-block path=/dev/loop0
+    lxc config device add ${IMAGENAME} loop1 unix-block path=/dev/loop1
+    lxc config device add ${IMAGENAME} loop2 unix-block path=/dev/loop2
+    lxc config device add ${IMAGENAME} loop3 unix-block path=/dev/loop3
+    lxc config device add ${IMAGENAME} loop4 unix-block path=/dev/loop4
+    lxc config device add ${IMAGENAME} loop5 unix-block path=/dev/loop5
+    lxc config device add ${IMAGENAME} loop6 unix-block path=/dev/loop6
+    lxc config device add ${IMAGENAME} loop7 unix-block path=/dev/loop7
+    lxc config device add ${IMAGENAME} loop-control unix-char path=/dev/loop-control
+
+    # Give permissions to the container
+    lxc config set ${IMAGENAME} raw.apparmor "mount,"
+    lxc config set ${IMAGENAME} security.privileged true
+
+    mountBuildDirectory
+
+    startContainer
+    waitContainerNetwork
+
+    # Install packages for image building
+    execContainer apt update
+    execContainer apt install -y  debootstrap qemu-utils xz-utils git zip qemu-user-static \
+                                  rsync debian-keyring debian-archive-keyring wget whois \
+                                  binfmt-support debootstrap f2fs-tools
+
+}
+
+#------------------------------------------------------------------------------------------
+updateContainer() {
+    lxc start ${IMAGENAME} || true
+
+    printGreen "Update image-builder"
+    lxc exec ${IMAGENAME} git pull
+}
+
+#------------------------------------------------------------------------------------------
+deleteContainer() {
+    printGreen "Delete container ${IMAGENAME}"
+    lxc delete ${IMAGENAME} --force || true
+}
+
+#------------------------------------------------------------------------------------------
+startContainer() {
+    printGreen "Start container ${IMAGENAME}"
+    if ! containerRunning; then
+        lxc start ${IMAGENAME};
+    else
+        printOrange "--> Container ${IMAGENAME} already running"
+    fi
+}
+
+#------------------------------------------------------------------------------------------
+stopContainer() {
+    printGreen "Stop container ${IMAGENAME}"
+    lxc stop ${IMAGENAME} --force || true
+}
+
+#------------------------------------------------------------------------------------------
+mountBuildDirectory() {
+    printGreen "Mount build directory ${BUILDDIR} into container ${IMAGENAME} ${WORKDIR}"
+    lxc config device add ${IMAGENAME} homedir disk source=${BUILDDIR} path=${WORKDIR}
+}
+
+#------------------------------------------------------------------------------------------
+buildImage() {
+    lxc exec ${IMAGENAME} -- su -c "cd ${WORKDIR} && ./${BUILDSCRIPT}"
+}
+
+#------------------------------------------------------------------------------------------
+enterShell() {
+    printGreen "Enter shell in container ${IMAGENAME}"
+    lxc exec ${IMAGENAME} bash
+}
+
+#------------------------------------------------------------------------------------------
+runCleanCommand() {
+    printGreen "Run clean command in container: ${BUILDSCRIPT} --clean"
+    execContainer ./${BUILDSCRIPT} --clean
+}
+
+#------------------------------------------------------------------------------------------
+execContainer() {
+    command="$@"
+    printGreen "Execute command in container: $command"
+    lxc exec ${IMAGENAME} -- su -c "cd ${WORKDIR}; $command"
+}
+
+#------------------------------------------------------------------------------------------
+# Main
+#------------------------------------------------------------------------------------------
+
+BUILDDIR="$(pwd)"
+BUILDSCRIPT=""
+
+CLEAN=false
+
+while [ "$1" != "" ]; do
+    case $1 in
+        shell )
+            enterShell; exit 0;;
+        clean )
+            CLEAN=true;;
+        start )
+            startContainer; exit 0;;
+        stop )
+            stopContainer; exit 0;;
+        delete )
+            deleteContainer; exit 0;;
+        -s | --script )
+            BUILDSCRIPT=$2
+            shift;;
+        -d | --directory )
+            BUILDDIR=$2
+            shift;;
+        -n | --no-colors )
+            COLORS=false;;
+        -h | --help )
+            usage && exit 0;;
+        * )
+            usage && exit 1;;
+    esac
+    shift
+done
+
+# Load config if there is any
+CONFIGDIR=${BUILDDIR}/.imagebuilder
+CONFIG=${CONFIGDIR}/config
+if [ -e ${CONFIG} ]; then
+    . ${CONFIG}
+else
+    # Create the config
+    if [ ! -d ${CONFIGDIR} ]; then mkdir ${CONFIGDIR}; fi
+    if [ ! -e ${CONFIG} ]; then touch ${CONFIG}; fi
+fi
+
+# Load build script
+grep BUILDSCRIPT ${CONFIG} > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    if [ -z $BUILDSCRIPT ]; then printRed "No build script specified. Please pass the script name with \"-s\"." && exit 1; fi
+    echo "BUILDSCRIPT=$BUILDSCRIPT" >> $CONFIG
+else
+    printGreen "Configure build script ${BUILDSCRIPT}"
+    sed -i "/BUILDSCRIPT=*/c\BUILDSCRIPT=${BUILDSCRIPT}" ${CONFIG}
+fi
+
+
+# Load build directory
+grep BUILDDIR ${CONFIG} > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+    # Build dir not configured yet, save the current directory
+    echo "BUILDDIR=$BUILDDIR" >> $CONFIG
+else
+    sed -i "/BUILDDIR=/c\BUILDDIR=${BUILDDIR}" ${CONFIG}
+fi
+
+# Check if the build script exists
+if [ ! -f ${BUILDDIR}/${BUILDSCRIPT} ]; then
+    printRed "Could not find ${BUILDDIR}/${BUILDSCRIPT}. Please specify the script name with \"-s\""
+    exit 1
+fi
+
+WORKDIR=/root/$(basename ${BUILDDIR})
+
+printGreen "Build directory: ${BUILDDIR}"
+printGreen "Build script: ${BUILDSCRIPT}"
+printGreen "Workdir in container: ${WORKDIR}"
+
+createContainer
+
+if ${CLEAN}; then runCleanCommand && exit 0; fi
+
+buildImage
+
