@@ -45,16 +45,16 @@ initEnv() {
     BUILD_DIR="${SCRIPT_DIR}/build"
     IMAGE_DIR="${BUILD_DIR}/${NAME}"
     MOUNT_DIR="${IMAGE_DIR}/mount"
+    CACHE_DIR="${HOME}/cache"
     NYMEA="${IMAGE_DIR}/nymea"
+    NYMEA_FLAG="${IMAGE_DIR}/.nymea"
     ROOTFS="${IMAGE_DIR}/rootfs"
 
-    # Base dirs shared across builds
-    BOOTSTRAP=${BUILD_DIR}/bootstrap/${TITLE}-${RELEASE}
-    BOOTSTRAP_FLAG=${BUILD_DIR}/bootstrap/.${TITLE}-${RELEASE}
-    BASE=${BUILD_DIR}/base/${TITLE}-${RELEASE}
-    BASE_FLAG=${BUILD_DIR}/base/.${TITLE}-${RELEASE}
-    NYMEA=${BUILD_DIR}/nymea/${TITLE}-${RELEASE}
-    NYMEA_FLAG=${BUILD_DIR}/nymea/.${TITLE}-${RELEASE}
+    # Base dirs shared across builds and placed in /root/cache in container
+    BOOTSTRAP=${CACHE_DIR}/bootstrap/${TITLE}-${RELEASE}
+    BOOTSTRAP_FLAG=${CACHE_DIR}/bootstrap/.${TITLE}-${RELEASE}
+    BASE=${CACHE_DIR}/base/${TITLE}-${RELEASE}
+    BASE_FLAG=${CACHE_DIR}/base/.${TITLE}-${RELEASE}
 
     NYMEA_REPOSITORY_SECTIONS="main"
 
@@ -89,6 +89,7 @@ initEnv() {
     printGreen "--> Image rootfs directory: ${ROOTFS}"
     printGreen "--> Image mount directory: ${MOUNT_DIR}"
     printGreen "--> Image name: ${IMAGE_NAME}"
+    printGreen "--> Lib dir: ${LIBDIR}"
 
     umountAll
 }
@@ -98,8 +99,6 @@ cleanBuild() {
     printGreen "Clean build"
     umountAll
     rm -rf ${IMAGE_DIR}
-    rm -rf ${NYMEA}
-    rm -f ${NYMEA_FLAG}
 }
 
 #------------------------------------------------------------------------------------------
@@ -234,7 +233,7 @@ createGroups() {
     chroot $R groupadd -f --system avahi
 
     # Create adduser hook
-    cp -v ${SCRIPT_DIR}/files/adduser.local $R/usr/local/sbin/
+    cp -v ${SCRIPT_DIR}/lib/scripts/adduser.local $R/usr/local/sbin/
     chmod +x $R/usr/local/sbin/adduser.local
 }
 
@@ -242,7 +241,7 @@ createGroups() {
 configureSsh() {
     printGreen "Configure ssh..."
     chroot $R apt-get -y install openssh-server sshguard
-    cp -v ${SCRIPT_DIR}/files/sshdgenkeys.service $R/etc/systemd/system/
+    cp -v ${SCRIPT_DIR}/lib/scripts/sshdgenkeys.service $R/etc/systemd/system/
     mkdir -p $R/etc/systemd/system/ssh.service.wants
 
     chroot $R /bin/systemctl enable sshdgenkeys.service
@@ -317,16 +316,20 @@ EOM
 
     # Enable autoresize filesystem at first boot
     printGreen "Enable auto resize roofs on first boot ..."
-    cp -v ${SCRIPT_DIR}/files/resize2fs_once $R/etc/init.d/resize2fs_once
+    cp -v ${SCRIPT_DIR}/lib/scripts/resize2fs_once $R/etc/init.d/resize2fs_once
     chmod +x $R/etc/init.d/resize2fs_once
-    cp -v ${SCRIPT_DIR}/files/resize-fs.service $R/lib/systemd/system/resize-fs.service
+    cp -v ${SCRIPT_DIR}/lib/scripts/resize-fs.service $R/lib/systemd/system/resize-fs.service
     chroot $R /bin/systemctl enable resize-fs.service
 
     # Enable i2c
     echo "i2c-dev" >> $R/etc/modules
     echo "dtparam=i2c_arm=on" >> $R/boot/config.txt
 
-    # TODO: configure gpu and other stuff
+    if ${GPU_ENABLED}; then
+        printGreen "Enable GPU using $GPU_MEMORY MB of RAM"
+        echo "gpu_mem=$GPU_MEMORY" >> $R/boot/config.txt
+        echo "dtoverlay=vc4-fkms-v3d" >> $R/boot/config.txt
+    fi
 
     # Save the clock
     chroot $R fake-hwclock save
@@ -446,9 +449,6 @@ cleanRootfs() {
     # Potentially sensitive.
     rm -f $R/root/.bash_history
     rm -f $R/root/.ssh/known_hosts
-
-    # Remove bogus home directory
-    #rm -rf $R/home/${SUDO_USER} || true
 
     # Machine-specific, so remove in case this system is going to be
     # cloned.  These will be regenerated on the first boot.

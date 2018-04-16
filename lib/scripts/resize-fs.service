@@ -1,0 +1,10 @@
+[Unit]
+Description=Resize file system
+
+[Service]
+Type=simple
+ExecStart=/etc/init.d/resize2fs_once start
+
+[Install]
+WantedBy=multi-user.target
+
