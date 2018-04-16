@@ -233,7 +233,7 @@ createGroups() {
     chroot $R groupadd -f --system avahi
 
     # Create adduser hook
-    cp -v ${SCRIPT_DIR}/lib/scripts/adduser.local $R/usr/local/sbin/
+    cp -v ${LIBDIR}/scripts/adduser.local $R/usr/local/sbin/
     chmod +x $R/usr/local/sbin/adduser.local
 }
 
@@ -241,7 +241,7 @@ createGroups() {
 configureSsh() {
     printGreen "Configure ssh..."
     chroot $R apt-get -y install openssh-server sshguard
-    cp -v ${SCRIPT_DIR}/lib/scripts/sshdgenkeys.service $R/etc/systemd/system/
+    cp -v ${LIBDIR}/scripts/sshdgenkeys.service $R/etc/systemd/system/
     mkdir -p $R/etc/systemd/system/ssh.service.wants
 
     chroot $R /bin/systemctl enable sshdgenkeys.service
@@ -295,7 +295,7 @@ configureRaspberry() {
 
     printGreen "Configure welcome message..."
     # Welcome message
-    cp -v ${SCRIPT_DIR}/lib/motd $R/etc/
+    cp -v ${LIBDIR}/motd $R/etc/
 
     # Disable TLP
     if [ -f $R/etc/default/tlp ]; then
@@ -316,9 +316,9 @@ EOM
 
     # Enable autoresize filesystem at first boot
     printGreen "Enable auto resize roofs on first boot ..."
-    cp -v ${SCRIPT_DIR}/lib/scripts/resize2fs_once $R/etc/init.d/resize2fs_once
+    cp -v ${LIBDIR}/scripts/resize2fs_once $R/etc/init.d/resize2fs_once
     chmod +x $R/etc/init.d/resize2fs_once
-    cp -v ${SCRIPT_DIR}/lib/scripts/resize-fs.service $R/lib/systemd/system/resize-fs.service
+    cp -v ${LIBDIR}/scripts/resize-fs.service $R/lib/systemd/system/resize-fs.service
     chroot $R /bin/systemctl enable resize-fs.service
 
     # Enable i2c

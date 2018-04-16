@@ -151,7 +151,7 @@ stopContainer() {
 #------------------------------------------------------------------------------------------
 mountBuildDirectory() {
     printGreen "Mount build directory ${BUILDDIR} into container ${IMAGENAME} ${WORKDIR}"
-    lxc config device add ${IMAGENAME} homedir disk source=${BUILDDIR} path=${WORKDIR}
+    lxc config device add ${IMAGENAME} $(basename ${BUILDDIR}) disk source=${BUILDDIR} path=${WORKDIR}
 }
 
 #------------------------------------------------------------------------------------------
