@@ -343,17 +343,23 @@ aptInstall() {
 }
 
 #------------------------------------------------------------------------------------------
+aptUpdate() {
+    printGreen "Update system $R ..."
+    chroot $R /bin/bash -c -x "export DEBIAN_FRONTEND=noninteractive && apt-get update"
+}
+
+#------------------------------------------------------------------------------------------
 aptUpgrade() {
     printGreen "Upgrade system $R ..."
-    chroot $R apt-get update
-    chroot $R apt-get -y -u dist-upgrade
+    chroot $R /bin/bash -c -x "export DEBIAN_FRONTEND=noninteractive && apt-get update"
+    chroot $R /bin/bash -c -x "export DEBIAN_FRONTEND=noninteractive && apt-get -y -u dist-upgrade"
 }
 
 #------------------------------------------------------------------------------------------
 aptClean() {
     printGreen "Clean packages..."
-    chroot $R apt-get -y autoremove
-    chroot $R apt-get clean
+    chroot $R /bin/bash -c -x "export DEBIAN_FRONTEND=noninteractive && apt-get -y autoremove"
+    chroot $R /bin/bash -c -x "export DEBIAN_FRONTEND=noninteractive && apt-get clean"
 }
 
 #------------------------------------------------------------------------------------------
@@ -386,7 +392,7 @@ EOM
     rm -v $R/raspberrypi.gpg.key
     chroot $R apt-key list
 
-    chroot $R apt update
+    aptUpdate
 
     aptInstall libraspberrypi-bin libraspberrypi-dev libraspberrypi-doc libraspberrypi0 raspberrypi-bootloader rpi-update raspi-config \
                bluez-firmware pi-bluetooth raspi-copies-and-fills raspberrypi-sys-mods raspberrypi-net-mods \
@@ -412,7 +418,7 @@ deb-src http://repository.nymea.io ${RELEASE} ${NYMEA_REPOSITORY_SECTIONS}
 EOM
 
     cat $R/etc/apt/sources.list.d/nymea.list
-    chroot $R apt update
+    aptUpdate
 }
 
 #------------------------------------------------------------------------------------------
