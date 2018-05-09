@@ -21,8 +21,8 @@ umountAll() {
         if mount | grep "$IMAGEMOUNT" > /dev/null; then
             printGreen "--> Umount image partition ${IMAGEMOUNT}"
             umount -l "${IMAGEMOUNT}"
-        else
-            printOrange "--> ${IMAGEMOUNT} is not mounted"
+#        else
+#            printOrange "--> ${IMAGEMOUNT} is not mounted"
         fi
     done
 
@@ -32,8 +32,8 @@ umountAll() {
             if mount | grep "$SYSTEMMOUNTPOINT" > /dev/null; then
                 printGreen "--> Umount system from ${SYSTEMMOUNTPOINT}"
                 umount -l "${SYSTEMMOUNTPOINT}"
-            else
-                printOrange "--> ${SYSTEMMOUNTPOINT} is not mounted"
+#            else
+#                printOrange "--> ${SYSTEMMOUNTPOINT} is not mounted"
             fi
         done
     done
