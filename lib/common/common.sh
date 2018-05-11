@@ -422,6 +422,12 @@ EOM
 }
 
 #------------------------------------------------------------------------------------------
+writeVersion() {
+    printGreen "Write image version to $R/.image-version"
+    echo "$IMAGE_NAME" > $R/.image-version
+}
+
+#------------------------------------------------------------------------------------------
 cleanRootfs() {
     printGreen "Clean up rootfs $R ..."
     rm -f $R/etc/apt/*.save || true
@@ -633,6 +639,8 @@ buildNymeaSystemDebian() {
 
         aptUpgrade
         aptClean
+
+        writeVersion
 
         umountSystem
         touch ${NYMEA_FLAG}

@@ -470,6 +470,12 @@ function cleanUp() {
 }
 
 #------------------------------------------------------------------------------------------
+writeVersion() {
+    printGreen "Write image version to $R/.image-version"
+    echo "$IMAGE_NAME" > $R/.image-version
+}
+
+#------------------------------------------------------------------------------------------
 function createImage() {
     printGreen "Create image..."
 
@@ -583,6 +589,7 @@ function stageImageBuild() {
     apt_upgrade
     aptClean
     cleanUp
+    writeVersion
     umountSystem
     createImage ${FS_TYPE} ${FS_SIZE}
 }
