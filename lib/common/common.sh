@@ -181,6 +181,7 @@ syncRootfs() {
     printGreen "Sync ${1} --> ${2}"
     if [ ! -d "${1}" ]; then mkdir -pv "${1}"; fi
     rsync -a --delete $1/ $2/
+    cp -v /usr/bin/qemu-arm-static $2/usr/bin
 }
 
 #------------------------------------------------------------------------------------------
