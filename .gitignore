@@ -1,4 +1,6 @@
 *.zip
 *.xz
 *.img
+.imagebuilder/
 image-rpi3-build/
+build/
