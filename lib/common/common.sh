@@ -374,7 +374,7 @@ installDebianBase() {
                ed file ftp hdparm info iptables libpam-systemd logrotate lshw lsof \
                ltrace man-db mime-support parted pciutils psmisc rsync strace systemd-sysv time usbutils wget \
                apparmor apt-transport-https bash-completion command-not-found friendly-recovery iputils-tracepath \
-               irqbalance manpages mlocate mtr-tiny ntfs-3g openssh-client uuid-runtime dirmngr
+               irqbalance manpages mlocate mtr-tiny ntfs-3g openssh-client uuid-runtime dirmngr whois
 
 }
 

@@ -388,8 +388,8 @@ function installSoftware() {
 
     cat <<EOM >$R/etc/apt/sources.list.d/nymea.list
 ## nymea repo
-deb http://repository.nymea.io ${RELEASE} main
-deb-src http://repository.nymea.io ${RELEASE} main
+deb http://repository.nymea.io ${RELEASE} main raspbian
+deb-src http://repository.nymea.io ${RELEASE} main raspbian
 EOM
 
     printGreen "Update..."
